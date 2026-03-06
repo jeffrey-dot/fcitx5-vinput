@@ -1,6 +1,6 @@
 #include "common/postprocess_scene.h"
 
-#include <fcitx-utils/standardpaths.h>
+#include <fcitx-utils/standardpath.h>
 #include <nlohmann/json.hpp>
 
 #include <cstdio>
@@ -107,11 +107,11 @@ const Config& DefaultConfig() {
 }
 
 Config LoadConfig() {
-    auto path = fcitx::StandardPaths::global().locate(
-        fcitx::StandardPathsType::PkgConfig, kConfigPath);
+    auto path = fcitx::StandardPath::global().locate(
+        fcitx::StandardPath::Type::PkgConfig, kConfigPath);
     if (path.empty()) {
-        path = fcitx::StandardPaths::global().locate(
-            fcitx::StandardPathsType::PkgData, kPkgDataPath);
+        path = fcitx::StandardPath::global().locate(
+            fcitx::StandardPath::Type::PkgData, kPkgDataPath);
     }
     if (path.empty()) {
         return DefaultConfig();

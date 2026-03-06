@@ -4,7 +4,7 @@
 #include "daemon/model_manager.h"
 
 #include <fcitx-config/iniparser.h>
-#include <fcitx-utils/standardpaths.h>
+#include <fcitx-utils/standardpath.h>
 
 #include <pipewire/keys.h>
 #include <pipewire/pipewire.h>
@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -34,16 +35,15 @@ fcitx::ListConstrain<fcitx::KeyConstrain> SceneMenuKeyListConstrain() {
 }
 
 std::string UserPkgConfigPath(std::string_view relative_path) {
-    return (fcitx::StandardPaths::global().userDirectory(
-                fcitx::StandardPathsType::PkgConfig) /
+    return (std::filesystem::path(fcitx::StandardPath::global().userDirectory(
+                fcitx::StandardPath::Type::PkgConfig)) /
             std::string(relative_path))
         .string();
 }
 
 std::string BuiltInPkgDataPath(std::string_view relative_path) {
-    return fcitx::StandardPaths::fcitxPath("pkgdatadir",
-                                           std::string(relative_path))
-        .string();
+    const std::string path(relative_path);
+    return fcitx::StandardPath::fcitxPath("pkgdatadir", path.c_str());
 }
 
 std::string CompactHomePath(std::string path) {
@@ -527,7 +527,7 @@ VinputSettings LoadVinputSettings() {
     ModelManager model_manager;
     VinputConfig config(VinputSettings{}, {}, {}, model_manager.GetBaseDir(),
                         false);
-    fcitx::readAsIni(config, fcitx::StandardPathsType::PkgConfig,
+    fcitx::readAsIni(config, fcitx::StandardPath::Type::PkgConfig,
                      kVinputConfigPath);
     return config.settings();
 }
@@ -535,7 +535,7 @@ VinputSettings LoadVinputSettings() {
 bool SaveVinputSettings(const VinputSettings& settings) {
     ModelManager model_manager;
     VinputConfig config(settings, {}, {}, model_manager.GetBaseDir(), false);
-    return fcitx::safeSaveAsIni(config, fcitx::StandardPathsType::PkgConfig,
+    return fcitx::safeSaveAsIni(config, fcitx::StandardPath::Type::PkgConfig,
                                 kVinputConfigPath);
 }
 
