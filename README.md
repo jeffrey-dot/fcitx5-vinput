@@ -1,18 +1,28 @@
+<div align="center">
+
 # fcitx5-vinput
+
+**Local offline voice input plugin for Fcitx5**
+
+[![License](https://img.shields.io/github/license/xifan2333/fcitx5-vinput)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/xifan2333/fcitx5-vinput)](https://github.com/xifan2333/fcitx5-vinput/releases)
+[![AUR](https://img.shields.io/aur/version/fcitx5-vinput)](https://aur.archlinux.org/packages/fcitx5-vinput)
 
 [English](README.md) | [中文](README_zh.md)
 
-Local offline voice input plugin for Fcitx5, powered by sherpa-onnx for speech recognition with LLM post-processing support.
+</div>
+
+Powered by [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) for on-device speech recognition, with optional LLM post-processing via any OpenAI-compatible API.
 
 ## Features
 
-- Press and hold trigger key to record, release to recognize and commit text
-- LLM post-processing support (error correction, formatting, translation, etc.) with OpenAI API compatibility
-- Command mode: Select text, press command key, speak instructions to modify selected content
-- Scene management: Configure different post-processing prompts for different scenarios
-- Multiple LLM providers: Configure multiple servers and switch between them
-- Hotword support (for compatible models)
-- `vinput` CLI tool: Manage models, scenes, and LLM configurations
+- **Press & hold** trigger key to record, release to recognize and commit
+- **LLM post-processing** — error correction, formatting, translation, and more
+- **Command mode** — select text, speak an instruction, release to apply
+- **Scene management** — switch post-processing prompts on the fly
+- **Multiple LLM providers** — configure and switch between servers at runtime
+- **Hotword support** for compatible models
+- **`vinput` CLI** — manage models, scenes, and LLM config from the terminal
 
 ## Installation
 
@@ -33,7 +43,7 @@ sudo apt-get install -f
 
 ### Build from Source
 
-Dependencies: `cmake`, `fcitx5`, `sherpa-onnx`, `pipewire`, `libcurl`, `nlohmann-json`, `CLI11`, `Qt6`
+**Dependencies:** `cmake` `fcitx5` `sherpa-onnx` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -43,46 +53,45 @@ sudo cmake --install build
 
 ## Quick Start
 
-### 1. Install Model
+**1. Install a model**
 
 ```bash
-vinput model list --remote      # List available models
+vinput model list --remote      # Browse available models
 vinput model add <model-name>   # Download and install
-vinput model use <model-name>   # Set as current model
+vinput model use <model-name>   # Set as active model
 ```
 
-Or manually place model directory in `~/.local/share/fcitx5-vinput/models/<model-name>/`, containing:
-
+Or manually place a model directory in `~/.local/share/fcitx5-vinput/models/<model-name>/` containing:
 - `vinput-model.json`
 - `model.int8.onnx` or `model.onnx`
 - `tokens.txt`
 
-### 2. Start Daemon
+**2. Start the daemon**
 
 ```bash
 systemctl --user enable --now vinput-daemon.service
 ```
 
-### 3. Enable in Fcitx5
+**3. Enable in Fcitx5**
 
 Open Fcitx5 Configuration → Addons → Find **Vinput** → Enable.
 
-### 4. Start Using
+**4. Start using**
 
-Press and hold trigger key (default `Alt_R`) to record, release to recognize and commit.
+Press and hold `Alt_R` to record, release to recognize and commit.
 
 ## Key Bindings
 
 | Key | Default | Function |
 |-----|---------|----------|
-| Trigger Key | `Alt_R` | Press to record, release to recognize |
-| Command Key | `Control_R` | Select text, press to modify with voice command |
-| Scene Menu Key | `Shift_R` | Open post-processing scene menu |
-| Page Up/Down | `Page Up` / `Page Down` | Navigate candidate list |
+| Trigger Key | `Alt_R` | Hold to record, release to commit |
+| Command Key | `Control_R` | Hold after selecting text to modify with voice |
+| Scene Menu Key | `Shift_R` | Open scene switcher |
+| Page Up / Down | `Page Up` / `Page Down` | Navigate candidate list |
 | Move | `↑` / `↓` | Move cursor in candidate list |
 | Confirm | `Enter` | Confirm selected candidate |
 | Cancel | `Esc` | Close menu |
-| Quick Select | `1`–`9` | Quick select candidate |
+| Quick Select | `1`–`9` | Quick-pick candidate |
 
 All keys can be customized in Fcitx5 configuration.
 
@@ -90,57 +99,70 @@ All keys can be customized in Fcitx5 configuration.
 
 ### GUI
 
-Open Vinput addon in Fcitx5 configuration, or run directly:
-
 ```bash
 vinput-gui
 ```
 
-### CLI Tool
+Or open the Vinput addon in Fcitx5 Configuration.
 
-#### Model Management
+### CLI Reference
+
+<details>
+<summary>Model Management</summary>
 
 ```bash
 vinput model list               # List installed models
 vinput model list --remote      # List available remote models
-vinput model add <name>         # Download and install model
-vinput model use <name>         # Switch current model
+vinput model add <name>         # Download and install
+vinput model use <name>         # Switch active model
 vinput model remove <name>      # Remove model
 vinput model info <name>        # View model details
 ```
 
-#### Scene Management
+</details>
+
+<details>
+<summary>Scene Management</summary>
 
 ```bash
 vinput scene list               # List all scenes
 vinput scene add                # Add scene (interactive)
 vinput scene edit               # Edit scene
-vinput scene use <ID>           # Switch current scene
+vinput scene use <ID>           # Switch active scene
 vinput scene remove <ID>        # Remove scene
 ```
 
-#### LLM Configuration
+</details>
+
+<details>
+<summary>LLM Configuration</summary>
 
 ```bash
 vinput llm list                 # List all providers
 vinput llm add                  # Add provider (interactive)
 vinput llm edit                 # Edit provider
-vinput llm use <name>           # Switch current provider
+vinput llm use <name>           # Switch active provider
 vinput llm remove <name>        # Remove provider
 vinput llm enable               # Enable LLM post-processing
 vinput llm disable              # Disable LLM post-processing
 ```
 
-#### Hotword Management
+</details>
+
+<details>
+<summary>Hotword Management</summary>
 
 ```bash
 vinput hotword get              # View current hotword file path
 vinput hotword set <path>       # Set hotword file
 vinput hotword edit             # Open hotword file in editor
-vinput hotword clear            # Clear hotword file configuration
+vinput hotword clear            # Clear hotword configuration
 ```
 
-#### Daemon Management
+</details>
+
+<details>
+<summary>Daemon Management</summary>
 
 ```bash
 vinput daemon status            # Check daemon status
@@ -150,39 +172,39 @@ vinput daemon restart           # Restart daemon
 vinput daemon logs              # View logs
 ```
 
+</details>
+
 ## Scenes
 
-Scenes control how LLM processes recognition results, switchable at runtime via scene menu key.
+Scenes control how LLM processes recognition results. Switch between them at runtime using the scene menu key.
 
-Each scene contains:
+Each scene has:
+- **ID** — unique identifier
+- **Label** — display name in the menu
+- **Prompt** — system prompt sent to the LLM
 
-- **ID**: Unique identifier
-- **Label**: Display name in menu
-- **Prompt**: System prompt sent to LLM
-
-The `default` scene calls LLM like other scenes (if enabled). To skip LLM, disable it globally or set scene candidate count to 0.
+The `default` scene calls LLM like any other scene (when enabled). To bypass LLM entirely, disable it globally or set the scene's candidate count to `0`.
 
 ## Command Mode
 
-Select text, press and hold command key, speak instruction, release to have LLM modify and replace selected content.
+Select text → hold command key → speak your instruction → release → done.
 
-Examples:
-- Select Chinese text → Press command key → Say "translate to English" → Release → Content replaced with English translation
-- Select code → Say "add comments" → Release → Code replaced with commented version
+**Examples:**
+- Select Chinese text → say *"translate to English"* → replaced with translation
+- Select code → say *"add comments"* → replaced with commented version
 
-Command mode requires LLM to be configured and enabled.
+> Requires LLM to be configured and enabled.
 
-## LLM Configuration Example
+## LLM Setup Example
 
-Using local Ollama:
+Using local [Ollama](https://ollama.com):
 
 ```bash
 vinput llm add
-# Fill in prompts:
-# Name: ollama
+# Name:     ollama
 # Base URL: http://127.0.0.1:11434/v1
-# API Key: (leave empty)
-# Model: qwen2.5:7b
+# API Key:  (leave empty)
+# Model:    qwen2.5:7b
 
 vinput llm use ollama
 vinput llm enable
@@ -192,13 +214,13 @@ vinput llm enable
 
 | File | Path |
 |------|------|
-| Fcitx5 plugin config (keybindings, etc.) | `~/.config/fcitx5/conf/vinput.conf` |
+| Plugin config (keybindings, etc.) | `~/.config/fcitx5/conf/vinput.conf` |
 | Core config (model, LLM, scenes) | `~/.config/vinput/config.json` |
 | Model directory | `~/.local/share/fcitx5-vinput/models/` |
 
-## Packaging and Release
+## Release
 
-Push a tag like `v0.1.0`, and GitHub Actions will automatically build and upload the following artifacts to Release:
+Push a tag (e.g. `v0.1.0`) and GitHub Actions will automatically build and publish:
 
 - Source tarball `fcitx5-vinput-<version>.tar.gz`
 - Ubuntu 24.04 `.deb`
