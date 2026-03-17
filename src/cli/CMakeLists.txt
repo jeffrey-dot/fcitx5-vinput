@@ -25,6 +25,7 @@ add_executable(vinput
     command_device.cpp
     command_daemon.cpp
     command_status.cpp
+    command_recording.cpp
     dbus_client.cpp
     systemd_client.cpp
     ${CMAKE_SOURCE_DIR}/src/common/pipewire_device.cpp

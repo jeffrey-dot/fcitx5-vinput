@@ -1,7 +1,6 @@
 #include "cli/dbus_client.h"
 #include "common/dbus_interface.h"
 #include <systemd/sd-bus.h>
-#include <cstring>
 
 namespace vinput::cli {
 
@@ -84,6 +83,96 @@ bool DbusClient::GetDaemonStatus(std::string* status, std::string* error) {
     sd_bus_message_unref(reply);
     sd_bus_error_free(&err);
 
+    return true;
+}
+
+bool DbusClient::StartRecording(std::string* error) {
+    if (!bus_) {
+        if (error) *error = "D-Bus not connected";
+        return false;
+    }
+
+    sd_bus_error err = SD_BUS_ERROR_NULL;
+    sd_bus_message* reply = nullptr;
+
+    int r = sd_bus_call_method(bus_,
+        vinput::dbus::kBusName,
+        vinput::dbus::kObjectPath,
+        vinput::dbus::kInterface,
+        vinput::dbus::kMethodStartRecording,
+        &err, &reply, "");
+
+    if (r < 0) {
+        if (error) {
+            *error = err.message ? err.message : "D-Bus call failed";
+        }
+        sd_bus_error_free(&err);
+        if (reply) sd_bus_message_unref(reply);
+        return false;
+    }
+
+    if (reply) sd_bus_message_unref(reply);
+    sd_bus_error_free(&err);
+    return true;
+}
+
+bool DbusClient::StartCommandRecording(const std::string& selected_text, std::string* error) {
+    if (!bus_) {
+        if (error) *error = "D-Bus not connected";
+        return false;
+    }
+
+    sd_bus_error err = SD_BUS_ERROR_NULL;
+    sd_bus_message* reply = nullptr;
+
+    int r = sd_bus_call_method(bus_,
+        vinput::dbus::kBusName,
+        vinput::dbus::kObjectPath,
+        vinput::dbus::kInterface,
+        vinput::dbus::kMethodStartCommandRecording,
+        &err, &reply, "s", selected_text.c_str());
+
+    if (r < 0) {
+        if (error) {
+            *error = err.message ? err.message : "D-Bus call failed";
+        }
+        sd_bus_error_free(&err);
+        if (reply) sd_bus_message_unref(reply);
+        return false;
+    }
+
+    if (reply) sd_bus_message_unref(reply);
+    sd_bus_error_free(&err);
+    return true;
+}
+
+bool DbusClient::StopRecording(const std::string& scene_id, std::string* error) {
+    if (!bus_) {
+        if (error) *error = "D-Bus not connected";
+        return false;
+    }
+
+    sd_bus_error err = SD_BUS_ERROR_NULL;
+    sd_bus_message* reply = nullptr;
+
+    int r = sd_bus_call_method(bus_,
+        vinput::dbus::kBusName,
+        vinput::dbus::kObjectPath,
+        vinput::dbus::kInterface,
+        vinput::dbus::kMethodStopRecording,
+        &err, &reply, "s", scene_id.c_str());
+
+    if (r < 0) {
+        if (error) {
+            *error = err.message ? err.message : "D-Bus call failed";
+        }
+        sd_bus_error_free(&err);
+        if (reply) sd_bus_message_unref(reply);
+        return false;
+    }
+
+    if (reply) sd_bus_message_unref(reply);
+    sd_bus_error_free(&err);
     return true;
 }
 

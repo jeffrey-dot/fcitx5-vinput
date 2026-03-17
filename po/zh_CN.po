@@ -714,3 +714,45 @@ msgstr "API 密钥"
 #: src/addon/vinput.cpp
 msgid "Voice Input"
 msgstr "语音输入"
+
+#: src/cli/main.cpp
+msgid "Control voice recording"
+msgstr "控制语音录音"
+
+#: src/cli/main.cpp
+msgid "Start recording"
+msgstr "开始录音"
+
+#: src/cli/main.cpp
+msgid "Stop recording and recognize"
+msgstr "停止录音并识别"
+
+#: src/cli/main.cpp
+msgid "Scene ID (default: active scene)"
+msgstr "场景 ID（默认：当前活跃场景）"
+
+#: src/cli/main.cpp
+msgid "Toggle recording start/stop"
+msgstr "切换录音开始/停止"
+
+#: src/cli/command_recording.cpp
+msgid "Recording started."
+msgstr "录音已开始。"
+
+#: src/cli/command_recording.cpp
+#, c-format
+msgid "Recording stopped (scene: %s)."
+msgstr "录音已停止（场景：%s）。"
+
+#: src/cli/command_recording.cpp
+msgid "No active scene configured. Use 'vinput scene use <ID>' to set one."
+msgstr "未配置活跃场景。请使用 'vinput scene use <ID>' 设置。"
+
+#: src/cli/command_recording.cpp
+#, c-format
+msgid "Daemon is busy (status: %s)."
+msgstr "守护进程忙碌（状态：%s）。"
+
+#: src/cli/command_recording.cpp
+msgid "Daemon is in error state."
+msgstr "守护进程处于错误状态。"

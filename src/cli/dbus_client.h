@@ -18,6 +18,11 @@ public:
     // Get daemon status string (only call if IsDaemonRunning returns true)
     bool GetDaemonStatus(std::string* status, std::string* error = nullptr);
 
+    // Recording control
+    bool StartRecording(std::string* error = nullptr);
+    bool StartCommandRecording(const std::string& selected_text, std::string* error = nullptr);
+    bool StopRecording(const std::string& scene_id, std::string* error = nullptr);
+
 private:
     sd_bus* bus_ = nullptr;
 };

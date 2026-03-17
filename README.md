@@ -162,6 +162,19 @@ vinput hotword clear            # Clear hotword configuration
 </details>
 
 <details>
+<summary>Recording Control</summary>
+
+```bash
+vinput recording start              # Start recording
+vinput recording stop               # Stop recording and recognize
+vinput recording stop --scene <ID>  # Stop with specific scene
+vinput recording toggle             # Toggle recording start/stop
+vinput recording toggle --scene <ID># Toggle with specific scene
+```
+
+</details>
+
+<details>
 <summary>Daemon Management</summary>
 
 ```bash

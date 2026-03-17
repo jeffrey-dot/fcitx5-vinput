@@ -11,6 +11,7 @@
 #include "cli/command_init.h"
 #include "cli/command_llm.h"
 #include "cli/command_model.h"
+#include "cli/command_recording.h"
 #include "cli/command_scene.h"
 #include "cli/command_status.h"
 #include "cli/formatter.h"
@@ -199,6 +200,24 @@ int main(int argc, char *argv[]) {
   device_use->add_option("name", device_use_name, _("Device name or 'default'"))
       ->required();
 
+  // ---- recording subcommand ----
+  auto *recording_cmd =
+      app.add_subcommand("recording", _("Control voice recording"));
+  recording_cmd->require_subcommand(1);
+
+  auto *recording_start =
+      recording_cmd->add_subcommand("start", _("Start recording"));
+  auto *recording_stop =
+      recording_cmd->add_subcommand("stop", _("Stop recording and recognize"));
+  std::string recording_stop_scene;
+  recording_stop->add_option("--scene", recording_stop_scene,
+                             _("Scene ID (default: active scene)"));
+  auto *recording_toggle =
+      recording_cmd->add_subcommand("toggle", _("Toggle recording start/stop"));
+  std::string recording_toggle_scene;
+  recording_toggle->add_option("--scene", recording_toggle_scene,
+                               _("Scene ID (default: active scene)"));
+
   // ---- status subcommand ----
   auto *status_cmd = app.add_subcommand("status", _("Show overall vinput status"));
 
@@ -302,6 +321,15 @@ int main(int argc, char *argv[]) {
   // status
   else if (status_cmd->parsed()) {
     return RunStatus(*fmt, ctx);
+  }
+
+  // recording
+  else if (recording_start->parsed()) {
+    return RunRecordingStart(*fmt, ctx);
+  } else if (recording_stop->parsed()) {
+    return RunRecordingStop(recording_stop_scene, *fmt, ctx);
+  } else if (recording_toggle->parsed()) {
+    return RunRecordingToggle(recording_toggle_scene, *fmt, ctx);
   }
 
   // init

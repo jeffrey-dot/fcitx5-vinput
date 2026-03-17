@@ -162,6 +162,19 @@ vinput hotword clear            # 清除热词文件配置
 </details>
 
 <details>
+<summary>录音控制</summary>
+
+```bash
+vinput recording start              # 开始录音
+vinput recording stop               # 停止录音并识别
+vinput recording stop --scene <ID>  # 使用指定场景停止录音
+vinput recording toggle             # 切换录音开始/停止
+vinput recording toggle --scene <ID># 使用指定场景切换录音
+```
+
+</details>
+
+<details>
 <summary>守护进程管理</summary>
 
 ```bash
