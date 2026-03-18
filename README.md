@@ -19,9 +19,10 @@ Powered by [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) for on-device sp
 
 ## Features
 
-- **Press & hold** trigger key to record, release to recognize and commit
-- **LLM post-processing** — error correction, formatting, translation, and more
+- **Two trigger modes** — tap to toggle recording on/off, or hold to push-to-talk
 - **Command mode** — select text, speak an instruction, release to apply
+- **CLI trigger** — `vinput recording start/stop/toggle` for scripting and custom keybindings
+- **LLM post-processing** — error correction, formatting, translation, and more
 - **Scene management** — switch post-processing prompts on the fly
 - **Multiple LLM providers** — configure and switch between servers at runtime
 - **Hotword support** for compatible models
@@ -81,13 +82,14 @@ Open Fcitx5 Configuration → Addons → Find **Vinput** → Enable.
 
 **4. Start using**
 
-Press and hold `Alt_R` to record, release to recognize and commit.
+- **Tap** `Alt_R` to start recording, tap again to stop and recognize
+- **Hold** `Alt_R` to record, release to recognize (push-to-talk)
 
 ## Key Bindings
 
 | Key | Default | Function |
 |-----|---------|----------|
-| Trigger Key | `Alt_R` | Hold to record, release to commit |
+| Trigger Key | `Alt_R` | Tap to toggle recording; hold to push-to-talk |
 | Command Key | `Control_R` | Hold after selecting text to modify with voice |
 | Scene Menu Key | `Shift_R` | Open scene switcher |
 | Page Up / Down | `Page Up` / `Page Down` | Navigate candidate list |
