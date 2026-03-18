@@ -366,10 +366,19 @@ jobs:
             "Release ${version}"
 
           export GPG_TTY=$(tty) || true
+
+          # Create GPG wrapper for headless signing
+          cat > /tmp/gpg-wrapper.sh << 'EOF'
+          #!/bin/bash
+          /usr/bin/gpg --batch --no-tty --pinentry-mode loopback "$@"
+          EOF
+          chmod +x /tmp/gpg-wrapper.sh
+
           debuild -S -sa -d -us -uc \
             --lintian-opts --suppress-tags source-is-missing
 
-          debsign -k"E377996FF15A21371CC875F55D1938D94063BAAB" \
+          debsign -p/tmp/gpg-wrapper.sh \
+            -k"E377996FF15A21371CC875F55D1938D94063BAAB" \
             ../fcitx5-vinput_${version}-1ppa1~noble1_source.changes
 
           cd ..
