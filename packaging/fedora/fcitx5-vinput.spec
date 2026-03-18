@@ -1,5 +1,5 @@
 Name:           fcitx5-vinput
-Version:        %{?_vinput_version}%{!?_vinput_version:0.1.6}
+Version:        @VINPUT_VERSION@
 Release:        1%{?dist}
 Summary:        Offline voice input addon for Fcitx5
 License:        GPL-3.0-only

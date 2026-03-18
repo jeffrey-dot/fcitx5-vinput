@@ -305,11 +305,12 @@ jobs:
           version="${{ needs.source_archive.outputs.package_version }}"
           mkdir -p ~/rpmbuild/{SOURCES,SPECS}
           cp dist/${{ needs.source_archive.outputs.source_archive }} ~/rpmbuild/SOURCES/
-          cp packaging/fedora/fcitx5-vinput.spec ~/rpmbuild/SPECS/
+
+          sed "s/@VINPUT_VERSION@/${version}/" packaging/fedora/fcitx5-vinput.spec \
+            > ~/rpmbuild/SPECS/fcitx5-vinput.spec
 
           rpmbuild -bs ~/rpmbuild/SPECS/fcitx5-vinput.spec \
-            --define "_topdir $HOME/rpmbuild" \
-            --define "_vinput_version ${version}"
+            --define "_topdir $HOME/rpmbuild"
 
       - name: Submit to COPR
         shell: bash
