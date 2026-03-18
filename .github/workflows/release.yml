@@ -332,51 +332,12 @@ jobs:
           name: source-archive
           path: dist
 
-      - name: Install build tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y devscripts debhelper dput gnupg
-
-      - name: Import GPG key
-        run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
-          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-          gpgconf --kill gpg-agent
-
-      - name: Build and upload source package
-        shell: bash
-        env:
-          DEBFULLNAME: "xifan233"
-          DEBEMAIL: "xifan2333@gmail.com"
-        run: |
-          version="${{ needs.source_archive.outputs.package_version }}"
-          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
-
-          cp "dist/${{ needs.source_archive.outputs.source_archive }}" \
-            "fcitx5-vinput_${version}.orig.tar.gz"
-
-          cd "fcitx5-vinput-${version}"
-
-          cp -r packaging/debian debian
-
-          dch --create --package fcitx5-vinput \
-            --newversion "${version}-1ppa1~noble1" \
-            --distribution noble \
-            "Release ${version}"
-
-          export GPG_TTY=$(tty) || true
-
-          # Create GPG wrapper for headless signing
-          printf '#!/bin/bash\n/usr/bin/gpg --no-tty --pinentry-mode loopback "$@"\n' > /tmp/gpg-wrapper.sh
-          chmod +x /tmp/gpg-wrapper.sh
-
-          debuild -S -sa -d -us -uc \
-            --lintian-opts --suppress-tags source-is-missing
-
-          debsign -p /tmp/gpg-wrapper.sh \
-            -k"E377996FF15A21371CC875F55D1938D94063BAAB" \
-            ../fcitx5-vinput_${version}-1ppa1~noble1_source.changes
-
-          cd ..
-          dput ppa:xifan233/ppa fcitx5-vinput_${version}-1ppa1~noble1_source.changes
+      - uses: yuezk/publish-ppa-package@v2
+        with:
+          repository: "ppa:xifan233/ppa"
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          tarball: dist/${{ needs.source_archive.outputs.source_archive }}
+          debian_dir: packaging/debian
+          deb_email: "xifan2333@gmail.com"
+          deb_fullname: "xifan233"
+          series: "noble"
