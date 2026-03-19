@@ -272,6 +272,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
       - name: Patch manifest to use local source
         run: |
           sed -i '/- type: git/{N;N;s|- type: git\n.*url:.*\n.*tag:.*|- type: dir\n        path: ../../|;}' \
@@ -293,7 +294,6 @@ jobs:
       - build-deb
       - build-deb-debian12
       - build-arch
-      - build-flatpak
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
