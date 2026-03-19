@@ -1,0 +1,41 @@
+app-id: org.fcitx.Fcitx5.Addon.Vinput
+branch: master
+runtime: org.fcitx.Fcitx5
+runtime-version: master
+sdk: org.kde.Sdk//6.10
+build-extension: true
+separate-locales: false
+build-options:
+  prefix: /app/addons/Vinput
+  prepend-pkg-config-path: /app/addons/Vinput/lib/pkgconfig
+  no-debuginfo: true
+  strip: true
+cleanup:
+  - /include
+  - "*.la"
+  - "*.a"
+  - /lib/cmake
+  - /lib/pkgconfig
+modules:
+  - name: sherpa-onnx
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DSHERPA_ONNX_ENABLE_TESTS=OFF
+      - -DSHERPA_ONNX_ENABLE_PYTHON=OFF
+      - -DSHERPA_ONNX_ENABLE_C_API=ON
+      - -DSHERPA_ONNX_ENABLE_BINARY=OFF
+      - -DSHERPA_ONNX_ENABLE_TTS=OFF
+      - -DSHERPA_ONNX_ENABLE_SPEAKER_DIARIZATION=OFF
+      - -DBUILD_SHARED_LIBS=ON
+    sources:
+      - type: archive
+        url: https://github.com/k2-fsa/sherpa-onnx/archive/refs/tags/v1.12.28.tar.gz
+        sha256: 99bbeb2a1558cc13f24d1af03c040c1f499f425916ffed9a734a38a434bdb899
+  - name: fcitx5-vinput
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: dir
+        path: ../../

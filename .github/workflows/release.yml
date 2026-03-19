@@ -271,11 +271,6 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v4
-      - name: Generate CI manifest
-        run: |
-          sed 's|- type: git$|  - type: dir|;s|.*url:.*xifan2333.*|        path: .|;/.*tag:.*<release-tag>/d' \
-            packaging/flatpak/org.fcitx.Fcitx5.Addon.Vinput.yaml \
-            > packaging/flatpak/ci-manifest.yaml
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           manifest-path: packaging/flatpak/ci-manifest.yaml
