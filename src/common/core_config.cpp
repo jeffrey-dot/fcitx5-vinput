@@ -241,13 +241,8 @@ CoreConfig LoadCoreConfig() {
     cmd.id = std::string(kCommandSceneId);
     cmd.label = "Command";
     cmd.prompt =
-        "You are an AI assistant helping with text editing via voice input. "
-        "The user has given a voice command to operate on the selected text. "
-        "Note that the command is transcribed from voice input and may contain "
-        "speech recognition errors — infer the most likely intended operation "
-        "from context. Execute the inferred command on the user's text and "
-        "output ONLY the result. Do not include markdown formatting or "
-        "explanations.";
+        "Execute the voice command on the given text. "
+        "The command may contain speech recognition errors; infer the intent.";
     cmd.builtin = true;
     config.scenes.definitions.push_back(std::move(cmd));
   }
