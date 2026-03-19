@@ -20,6 +20,8 @@ cmake -S "${workdir}/sherpa-onnx-${version}" -B "${workdir}/build" \
     -DSHERPA_ONNX_ENABLE_PYTHON=OFF \
     -DSHERPA_ONNX_ENABLE_C_API=ON \
     -DSHERPA_ONNX_ENABLE_BINARY=OFF \
+    -DSHERPA_ONNX_ENABLE_TTS=OFF \
+    -DSHERPA_ONNX_ENABLE_SPEAKER_DIARIZATION=OFF \
     -DBUILD_SHARED_LIBS=ON
 
 cmake --build "${workdir}/build"
