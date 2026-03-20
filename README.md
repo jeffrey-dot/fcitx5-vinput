@@ -24,9 +24,9 @@ Powered by [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) for on-device sp
 - **Command mode** — select text, speak an instruction, release to apply
 - **LLM post-processing** — error correction, formatting, translation, and more
 - **Scene management** — switch post-processing prompts on the fly
-- **Multiple LLM providers** — configure and switch between servers at runtime
+- **Multiple LLM providers** — configure providers and assign them per scene
 - **Hotword support** for compatible models
-- **`vinput` CLI** — manage models, scenes, and LLM config from the terminal
+- **`vinput` CLI** — manage models, scenes, providers, and daemon state from the terminal
 
 ## Installation
 
@@ -131,6 +131,8 @@ Or open the Vinput addon in Fcitx5 Configuration.
 
 ### CLI Reference
 
+Use `vinput --help` or `vinput <subcommand> --help` for the full current syntax.
+
 <details>
 <summary>Model Management</summary>
 
@@ -150,11 +152,12 @@ vinput model info <name>        # View model details
 
 ```bash
 vinput scene list               # List all scenes
-vinput scene add                # Add scene (interactive)
-vinput scene edit               # Edit scene
+vinput scene add --id <id>      # Add a scene
 vinput scene use <ID>           # Switch active scene
 vinput scene remove <ID>        # Remove scene
 ```
+
+Scenes that use LLM must set `--provider`, `--model`, and `--prompt` together.
 
 </details>
 
@@ -162,13 +165,24 @@ vinput scene remove <ID>        # Remove scene
 <summary>LLM Configuration</summary>
 
 ```bash
-vinput llm list                 # List all providers
-vinput llm add                  # Add provider (interactive)
-vinput llm edit                 # Edit provider
-vinput llm use <name>           # Switch active provider
+vinput llm list                 # List configured providers
+vinput llm add <name> --base-url <url>
 vinput llm remove <name>        # Remove provider
-vinput llm enable               # Enable LLM post-processing
-vinput llm disable              # Disable LLM post-processing
+```
+
+LLM providers are referenced by scenes; there is no separate active-provider toggle.
+
+</details>
+
+<details>
+<summary>ASR Providers</summary>
+
+```bash
+vinput asr list                 # List configured ASR providers
+vinput asr add <name>           # Add a builtin or command provider
+vinput asr use <name>           # Switch active ASR provider
+vinput asr edit <name>          # Edit external provider script
+vinput asr remove <name>        # Remove provider
 ```
 
 </details>
@@ -181,6 +195,28 @@ vinput hotword get              # View current hotword file path
 vinput hotword set <path>       # Set hotword file
 vinput hotword edit             # Open hotword file in editor
 vinput hotword clear            # Clear hotword configuration
+```
+
+</details>
+
+<details>
+<summary>Device Management</summary>
+
+```bash
+vinput device list              # List capture devices
+vinput device use <name>        # Set active device
+```
+
+</details>
+
+<details>
+<summary>Config Helpers</summary>
+
+```bash
+vinput config get extra.registry_url        # Read a supported config value
+vinput config set extra.hotwords_file <path> # Write a supported config value
+vinput config edit extra                    # Edit core config file
+vinput config edit fcitx                    # Edit Fcitx addon config
 ```
 
 </details>
@@ -202,11 +238,12 @@ vinput recording toggle --scene <ID># Toggle with specific scene
 <summary>Daemon Management</summary>
 
 ```bash
-vinput daemon status            # Check daemon status
 vinput daemon start             # Start daemon
 vinput daemon stop              # Stop daemon
 vinput daemon restart           # Restart daemon
 vinput daemon logs              # View logs
+vinput status                   # Show overall vinput status
+vinput init                     # Create default config and model directories
 ```
 
 </details>
@@ -220,7 +257,8 @@ Each scene has:
 - **Label** — display name in the menu
 - **Prompt** — system prompt sent to the LLM
 
-The `default` scene calls LLM like any other scene (when enabled). To bypass LLM entirely, disable it globally or set the scene's candidate count to `0`.
+LLM is only used when a scene has `provider + model + prompt` configured.
+The built-in `__raw__` scene bypasses LLM entirely.
 
 ## Command Mode
 
@@ -242,14 +280,13 @@ the command rewrite flow if your primary selection is not what you expect.
 Using local [Ollama](https://ollama.com):
 
 ```bash
-vinput llm add
-# Name:     ollama
-# Base URL: http://127.0.0.1:11434/v1
-# API Key:  (leave empty)
-# Model:    qwen2.5:7b
-
-vinput llm use ollama
-vinput llm enable
+vinput llm add ollama --base-url http://127.0.0.1:11434/v1
+vinput scene add --id polish \
+  --label "Polish" \
+  --provider ollama \
+  --model qwen2.5:7b \
+  --prompt "Rewrite the recognized text into polished Chinese."
+vinput scene use polish
 ```
 
 ## Extension Scripts And Provider Contracts
