@@ -38,8 +38,14 @@ modules:
         sha256: f2d893a65c3b1324c50d4e682c0cdc021dd0477ae2c048544f39eed6654b699a
   - name: fcitx5-vinput
     buildsystem: cmake-ninja
+    build-options:
+      env:
+        CMAKE_PREFIX_PATH: /app/addons/Vinput:/app
+        CMAKE_LIBRARY_PATH: /app/addons/Vinput/lib
+        CMAKE_INCLUDE_PATH: /app/addons/Vinput/include
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
+      - -DVINPUT_FETCH_CLI11=OFF
     sources:
       - type: dir
         path: ../../
