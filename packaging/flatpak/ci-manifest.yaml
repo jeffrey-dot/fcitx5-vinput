@@ -19,6 +19,9 @@ cleanup:
 modules:
   - name: sherpa-onnx
     buildsystem: cmake-ninja
+    build-options:
+      build-args:
+        - --share=network
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DSHERPA_ONNX_ENABLE_TESTS=OFF
