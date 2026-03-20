@@ -1,6 +1,7 @@
 #include "asr_provider.h"
 
 #include "asr_engine.h"
+#include "common/asr_defaults.h"
 #include "common/model_manager.h"
 #include "common/process_utils.h"
 
@@ -120,7 +121,7 @@ class CommandProvider : public Provider {
 public:
   bool Init(const CoreConfig &config, std::string *error) override {
     const ::AsrProvider *provider = ResolveActiveAsrProvider(config);
-    if (!provider || provider->type != "command") {
+    if (!provider || provider->type != kCommandProviderType) {
       if (error) {
         *error = "Active ASR provider is not a command provider.";
       }
@@ -209,10 +210,10 @@ std::unique_ptr<Provider> CreateProvider(const CoreConfig &config,
     return nullptr;
   }
 
-  if (provider->type == "builtin") {
+  if (provider->type == kBuiltinProviderType) {
     return std::make_unique<BuiltinProvider>();
   }
-  if (provider->type == "command") {
+  if (provider->type == kCommandProviderType) {
     return std::make_unique<CommandProvider>();
   }
 

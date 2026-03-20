@@ -21,7 +21,7 @@ struct AsrProvider {
   std::string command;
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
-  int timeoutMs{15000};
+  int timeoutMs{vinput::asr::kDefaultProviderTimeoutMs};
 };
 
 struct CoreConfig {

@@ -9,8 +9,6 @@ namespace vinput::scene {
 
 namespace {
 
-constexpr int kDefaultSceneTimeoutMs = 4000;
-
 bool HasProvider(const Definition &scene) { return !scene.provider_id.empty(); }
 
 bool HasModel(const Definition &scene) { return !scene.model.empty(); }
@@ -59,7 +57,7 @@ void NormalizeDefinition(Definition *scene) {
   }
   scene->candidate_count = NormalizeCandidateCount(scene->candidate_count);
   if (scene->timeout_ms <= 0) {
-    scene->timeout_ms = kDefaultSceneTimeoutMs;
+    scene->timeout_ms = kDefaultTimeoutMs;
   }
 }
 

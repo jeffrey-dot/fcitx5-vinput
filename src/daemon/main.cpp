@@ -1,5 +1,6 @@
 #include "asr_provider.h"
 #include "audio_capture.h"
+#include "common/asr_defaults.h"
 #include "common/core_config.h"
 #include "common/dbus_interface.h"
 #include "common/i18n.h"
@@ -35,7 +36,7 @@ void LogActiveAsrProvider(const CoreConfig &config) {
     return;
   }
 
-  if (provider->type == "builtin") {
+  if (provider->type == vinput::asr::kBuiltinProviderType) {
     fprintf(stderr,
             "vinput-daemon: ASR provider=%s type=%s model=%s lang=%s\n",
             provider->name.c_str(), provider->type.c_str(),

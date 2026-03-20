@@ -16,7 +16,9 @@
 #include "cli/command_scene.h"
 #include "cli/command_status.h"
 #include "cli/formatter.h"
+#include "common/asr_defaults.h"
 #include "common/i18n.h"
+#include "common/postprocess_scene.h"
 
 int main(int argc, char *argv[]) {
   vinput::i18n::Init();
@@ -75,15 +77,19 @@ int main(int argc, char *argv[]) {
   std::string scene_add_prompt;
   std::string scene_add_provider;
   std::string scene_add_model;
-  int scene_add_candidates = 1;
-  int scene_add_timeout_ms = 4000;
+  int scene_add_candidates = vinput::scene::kDefaultCandidateCount;
+  int scene_add_timeout_ms = vinput::scene::kDefaultTimeoutMs;
   scene_add->add_option("--id", scene_add_id, _("Scene ID"))->required();
   scene_add->add_option("-l,--label", scene_add_label, _("Display label"));
   scene_add->add_option("-t,--prompt", scene_add_prompt, _("LLM prompt"));
   scene_add->add_option("-p,--provider", scene_add_provider, _("LLM provider name"));
   scene_add->add_option("-m,--model", scene_add_model, _("LLM model name"));
-  scene_add->add_option("-c,--candidates", scene_add_candidates, _("Candidate count"))->default_val(1);
-  scene_add->add_option("--timeout", scene_add_timeout_ms, _("Request timeout in milliseconds"))->default_val(4000);
+  scene_add->add_option("-c,--candidates", scene_add_candidates, _("Candidate count"))
+      ->default_val(vinput::scene::kDefaultCandidateCount);
+  scene_add
+      ->add_option("--timeout", scene_add_timeout_ms,
+                   _("Request timeout in milliseconds"))
+      ->default_val(vinput::scene::kDefaultTimeoutMs);
 
   std::string scene_use_id;
   auto *scene_use = scene_cmd->add_subcommand("use", _("Set active scene"));
@@ -131,16 +137,16 @@ int main(int argc, char *argv[]) {
   asr_list->alias("ls");
 
   std::string asr_add_name;
-  std::string asr_add_type = "builtin";
+  std::string asr_add_type = vinput::asr::kBuiltinProviderType;
   std::string asr_add_model;
   std::string asr_add_command;
   std::vector<std::string> asr_add_args;
   std::vector<std::string> asr_add_env;
-  int asr_add_timeout_ms = 15000;
+  int asr_add_timeout_ms = vinput::asr::kDefaultProviderTimeoutMs;
   auto *asr_add = asr_cmd->add_subcommand("add", _("Add an ASR provider"));
   asr_add->add_option("name", asr_add_name, _("Provider name"))->required();
   asr_add->add_option("--type", asr_add_type, _("Provider type: builtin or command"))
-      ->default_val("builtin");
+      ->default_val(vinput::asr::kBuiltinProviderType);
   asr_add->add_option("-m,--model", asr_add_model, _("Builtin model name"));
   asr_add->add_option("-c,--command", asr_add_command,
                       _("Command or executable path for command providers"));
@@ -151,7 +157,7 @@ int main(int argc, char *argv[]) {
   asr_add
       ->add_option("--timeout", asr_add_timeout_ms,
                    _("Provider timeout in milliseconds"))
-      ->default_val(15000);
+      ->default_val(vinput::asr::kDefaultProviderTimeoutMs);
 
   std::string asr_remove_name;
   bool asr_remove_force = false;

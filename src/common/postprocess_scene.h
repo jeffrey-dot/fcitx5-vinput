@@ -8,8 +8,13 @@ namespace vinput::scene {
 
 constexpr int kMinCandidateCount = 0;
 constexpr int kMaxCandidateCount = 9;
+constexpr int kDefaultCandidateCount = 1;
+constexpr int kDefaultTimeoutMs = 4000;
 constexpr std::string_view kRawSceneId = "__raw__";
 constexpr std::string_view kCommandSceneId = "__command__";
+inline constexpr char kBuiltinCommandScenePrompt[] =
+    "Execute the voice command on the given text. "
+    "The command may contain speech recognition errors; infer the intent.";
 
 struct Definition {
   std::string id;
@@ -17,8 +22,8 @@ struct Definition {
   std::string prompt;
   std::string provider_id;
   std::string model;
-  int candidate_count = 1;
-  int timeout_ms = 4000;
+  int candidate_count = kDefaultCandidateCount;
+  int timeout_ms = kDefaultTimeoutMs;
   bool builtin = false;
 };
 

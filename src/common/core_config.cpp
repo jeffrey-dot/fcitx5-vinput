@@ -61,7 +61,7 @@ AsrProvider DefaultBuiltinAsrProvider() {
   provider.name = std::string(vinput::asr::kDefaultProviderName);
   provider.type = std::string(vinput::asr::kBuiltinProviderType);
   provider.model = std::string(vinput::asr::kDefaultBuiltinModel);
-  provider.timeoutMs = 15000;
+  provider.timeoutMs = vinput::asr::kDefaultProviderTimeoutMs;
   return provider;
 }
 
@@ -138,8 +138,9 @@ void from_json(const json &j, Definition &d) {
   d.prompt = j.value("prompt", std::string{});
   d.provider_id = j.value("provider_id", std::string{});
   d.model = j.value("model", std::string{});
-  d.candidate_count = j.value("candidate_count", 1);
-  d.timeout_ms = j.value("timeout_ms", 4000);
+  d.candidate_count =
+      j.value("candidate_count", vinput::scene::kDefaultCandidateCount);
+  d.timeout_ms = j.value("timeout_ms", vinput::scene::kDefaultTimeoutMs);
   d.builtin = j.value("builtin", false);
 }
 
@@ -257,7 +258,7 @@ void EnsureBuiltInRawScene(CoreConfig *config) {
 
   vinput::scene::Definition raw;
   raw.id = std::string(vinput::scene::kRawSceneId);
-  raw.candidate_count = 0;
+  raw.candidate_count = vinput::scene::kMinCandidateCount;
   raw.builtin = true;
   config->scenes.definitions.insert(config->scenes.definitions.begin(),
                                     std::move(raw));
@@ -270,9 +271,7 @@ void EnsureBuiltInCommandScene(CoreConfig *config) {
 
   vinput::scene::Definition cmd;
   cmd.id = std::string(vinput::scene::kCommandSceneId);
-  cmd.prompt =
-      "Execute the voice command on the given text. "
-      "The command may contain speech recognition errors; infer the intent.";
+  cmd.prompt = vinput::scene::kBuiltinCommandScenePrompt;
   cmd.builtin = true;
   config->scenes.definitions.push_back(std::move(cmd));
 }
@@ -421,7 +420,7 @@ void NormalizeCoreConfig(CoreConfig *config) {
       }
     }
     if (provider.timeoutMs <= 0) {
-      provider.timeoutMs = 15000;
+      provider.timeoutMs = vinput::asr::kDefaultProviderTimeoutMs;
     }
     normalized_providers.push_back(std::move(provider));
   }

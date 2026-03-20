@@ -1011,11 +1011,11 @@ void VinputEngine::onStatusChanged(fcitx::dbus::Message &msg) {
   if (!active_ic_)
     return;
 
-  if (status == "recording") {
+  if (status == kStatusRecording) {
     updatePreedit(active_ic_, command_mode_ ? CommandingPreeditText() : RecordingPreeditText());
-  } else if (status == "inferring") {
+  } else if (status == kStatusInferring) {
     updatePreedit(active_ic_, InferringPreeditText());
-  } else if (status == "postprocessing") {
+  } else if (status == kStatusPostprocessing) {
     updatePreedit(active_ic_, PostprocessingPreeditText());
   } else {
     clearPreedit(active_ic_);

@@ -19,35 +19,40 @@ constexpr const char *kSignalDaemonError = "DaemonError";
 
 constexpr const char *kErrorOperationFailed =
     "org.fcitx.Vinput.Error.OperationFailed";
+constexpr const char *kStatusIdle = "idle";
+constexpr const char *kStatusRecording = "recording";
+constexpr const char *kStatusInferring = "inferring";
+constexpr const char *kStatusPostprocessing = "postprocessing";
+constexpr const char *kStatusError = "error";
 
 enum class Status { Idle, Recording, Inferring, Postprocessing, Error };
 
 inline const char *StatusToString(Status s) {
   switch (s) {
   case Status::Idle:
-    return "idle";
+    return kStatusIdle;
   case Status::Recording:
-    return "recording";
+    return kStatusRecording;
   case Status::Inferring:
-    return "inferring";
+    return kStatusInferring;
   case Status::Postprocessing:
-    return "postprocessing";
+    return kStatusPostprocessing;
   case Status::Error:
-    return "error";
+    return kStatusError;
   }
   return "unknown";
 }
 
 inline Status StringToStatus(const std::string &s) {
-  if (s == "idle")
+  if (s == kStatusIdle)
     return Status::Idle;
-  if (s == "recording")
+  if (s == kStatusRecording)
     return Status::Recording;
-  if (s == "inferring")
+  if (s == kStatusInferring)
     return Status::Inferring;
-  if (s == "postprocessing")
+  if (s == kStatusPostprocessing)
     return Status::Postprocessing;
-  if (s == "error")
+  if (s == kStatusError)
     return Status::Error;
   return Status::Idle;
 }

@@ -1,6 +1,7 @@
 #include "cli/command_recording.h"
 #include "cli/cli_helpers.h"
 #include "cli/dbus_client.h"
+#include "common/dbus_interface.h"
 #include "common/i18n.h"
 #include "common/string_utils.h"
 #include <nlohmann/json.hpp>
@@ -92,7 +93,7 @@ int RunRecordingToggle(const std::string& scene_id, Formatter& fmt, const CliCon
         return 1;
     }
 
-    if (status == "recording") {
+    if (status == vinput::dbus::kStatusRecording) {
         // Currently recording — stop it
         std::string resolved = ResolveSceneId(scene_id);
 
@@ -120,7 +121,8 @@ int RunRecordingToggle(const std::string& scene_id, Formatter& fmt, const CliCon
         return 0;
     }
 
-    if (status == "inferring" || status == "postprocessing") {
+    if (status == vinput::dbus::kStatusInferring ||
+        status == vinput::dbus::kStatusPostprocessing) {
         std::string msg = vinput::str::FmtStr(_("Daemon is busy (status: %s)."), status.c_str());
         if (ctx.json_output) {
             fmt.PrintJson({{"ok", false}, {"error", msg}});
@@ -130,7 +132,7 @@ int RunRecordingToggle(const std::string& scene_id, Formatter& fmt, const CliCon
         return 1;
     }
 
-    if (status == "error") {
+    if (status == vinput::dbus::kStatusError) {
         std::string msg = _("Daemon is in error state.");
         if (ctx.json_output) {
             fmt.PrintJson({{"ok", false}, {"error", msg}});

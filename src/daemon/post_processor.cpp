@@ -1,5 +1,7 @@
 #include "post_processor.h"
 
+#include "common/llm_defaults.h"
+
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
@@ -15,7 +17,6 @@ namespace {
 using json = nlohmann::json;
 constexpr std::size_t kMaxLoggedResponseBytes = 2048;
 constexpr std::size_t kMaxResponseBytes = 1 * 1024 * 1024; // 1 MB limit
-constexpr const char *kDebugRawLlmResponsesEnv = "VINPUT_DEBUG_LLM_RESPONSES";
 
 struct CurlGuard {
   CURL *curl = nullptr;
@@ -79,7 +80,8 @@ std::string BuildRequestUrl(const std::string &base_url) {
     return {};
   }
 
-  constexpr std::string_view kChatCompletions = "/chat/completions";
+  constexpr std::string_view kChatCompletions =
+      vinput::llm::kOpenAiChatCompletionsPath;
   if (base_url.size() >= kChatCompletions.size() &&
       base_url.compare(base_url.size() - kChatCompletions.size(),
                        kChatCompletions.size(), kChatCompletions) == 0) {
@@ -104,7 +106,7 @@ std::string QuoteForLog(std::string_view text) {
 }
 
 bool DebugRawLlmResponsesEnabled() {
-  const char *value = std::getenv(kDebugRawLlmResponsesEnv);
+  const char *value = std::getenv(vinput::llm::kDebugRawResponsesEnv);
   if (!value) {
     return false;
   }
@@ -213,9 +215,12 @@ RewriteWithOpenAiCompatible(const std::string &text,
   };
   const std::string request_body = request.dump();
 
-  guard.headers = curl_slist_append(nullptr, "Content-Type: application/json");
+  guard.headers =
+      curl_slist_append(nullptr, vinput::llm::kJsonContentTypeHeader);
   if (!provider.api_key.empty()) {
-    const std::string auth = "Authorization: Bearer " + provider.api_key;
+    const std::string auth =
+        std::string(vinput::llm::kAuthorizationHeader) + ": " +
+        vinput::llm::kBearerPrefix + provider.api_key;
     guard.headers = curl_slist_append(guard.headers, auth.c_str());
   }
 
@@ -227,7 +232,7 @@ RewriteWithOpenAiCompatible(const std::string &text,
   curl_easy_setopt(guard.curl, CURLOPT_WRITEFUNCTION, WriteResponseCallback);
   curl_easy_setopt(guard.curl, CURLOPT_TIMEOUT_MS, scene.timeout_ms);
   curl_easy_setopt(guard.curl, CURLOPT_NOSIGNAL, 1L);
-  curl_easy_setopt(guard.curl, CURLOPT_USERAGENT, "fcitx5-vinput/0.1");
+  curl_easy_setopt(guard.curl, CURLOPT_USERAGENT, vinput::llm::kHttpUserAgent);
 
   std::string response_body;
   curl_easy_setopt(guard.curl, CURLOPT_URL, url.c_str());

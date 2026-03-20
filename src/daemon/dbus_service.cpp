@@ -42,18 +42,18 @@ int ReplyWithMethodResult(sd_bus_message *m, sd_bus_error *error,
 
 static const sd_bus_vtable vtable[] = {
     SD_BUS_VTABLE_START(0),
-    SD_BUS_METHOD("StartRecording", "", "", &DbusService::handleStartRecording,
+    SD_BUS_METHOD(kMethodStartRecording, "", "", &DbusService::handleStartRecording,
                   SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("StartCommandRecording", "s", "",
+    SD_BUS_METHOD(kMethodStartCommandRecording, "s", "",
                   &DbusService::handleStartCommandRecording,
                   SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("StopRecording", "s", "s", &DbusService::handleStopRecording,
+    SD_BUS_METHOD(kMethodStopRecording, "s", "s", &DbusService::handleStopRecording,
                   SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("GetStatus", "", "s", &DbusService::handleGetStatus,
+    SD_BUS_METHOD(kMethodGetStatus, "", "s", &DbusService::handleGetStatus,
                   SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_SIGNAL("RecognitionResult", "s", 0),
-    SD_BUS_SIGNAL("StatusChanged", "s", 0),
-    SD_BUS_SIGNAL("DaemonError", "s", 0),
+    SD_BUS_SIGNAL(kSignalRecognitionResult, "s", 0),
+    SD_BUS_SIGNAL(kSignalStatusChanged, "s", 0),
+    SD_BUS_SIGNAL(kSignalDaemonError, "s", 0),
     SD_BUS_VTABLE_END,
 };
 
@@ -220,7 +220,7 @@ int DbusService::handleGetStatus(sd_bus_message *m, void *userdata,
                                  sd_bus_error *error) {
   (void)error;
   auto *self = static_cast<DbusService *>(userdata);
-  std::string status = "idle";
+  std::string status = kStatusIdle;
   if (self->status_handler_) {
     status = self->status_handler_();
   }

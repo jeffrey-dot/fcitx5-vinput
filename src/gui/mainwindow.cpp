@@ -34,6 +34,7 @@
 #include <algorithm>
 
 #include "common/asr_defaults.h"
+#include "common/llm_defaults.h"
 
 namespace {
 
@@ -163,7 +164,7 @@ bool EditAsrProviderDialog(QWidget *parent, const QString &title,
       initial.name = vinput::asr::kDefaultProviderName;
       initial.type = vinput::asr::kBuiltinProviderType;
       initial.model = vinput::asr::kDefaultBuiltinModel;
-      initial.timeoutMs = 15000;
+      initial.timeoutMs = vinput::asr::kDefaultProviderTimeoutMs;
     }
 
     editName->setText(QString::fromStdString(initial.name));
@@ -195,7 +196,9 @@ bool EditAsrProviderDialog(QWidget *parent, const QString &title,
           }
           return joined;
         }()));
-    spinTimeout->setValue(initial.timeoutMs > 0 ? initial.timeoutMs : 15000);
+    spinTimeout->setValue(initial.timeoutMs > 0
+                              ? initial.timeoutMs
+                              : vinput::asr::kDefaultProviderTimeoutMs);
 
     UpdateAsrDialogFieldState(comboType, editModel, editCommand, textArgs,
                               textEnv, spinTimeout);
@@ -1001,12 +1004,12 @@ void FetchModelsFromProviderAsync(const LlmProvider &provider,
   QString url = QString::fromStdString(provider.base_url);
   if (!url.endsWith('/'))
     url += '/';
-  url += "models";
+  url += vinput::llm::kOpenAiModelsPath;
 
   auto *nam = new QNetworkAccessManager(comboModel);
   QNetworkRequest req{QUrl(url)};
-  req.setRawHeader("Authorization",
-                   QByteArray("Bearer ") +
+  req.setRawHeader(vinput::llm::kAuthorizationHeader,
+                   QByteArray(vinput::llm::kBearerPrefix) +
                        QByteArray::fromStdString(provider.api_key));
 
   QNetworkReply *reply = nam->get(req);
@@ -1017,7 +1020,7 @@ void FetchModelsFromProviderAsync(const LlmProvider &provider,
       reply->abort();
     }
   });
-  timeout->start(5000);
+  timeout->start(vinput::llm::kModelFetchTimeoutMs);
 
   QObject::connect(reply, &QNetworkReply::finished, comboModel,
                    [comboModel, reply, timeout, cacheKey, generation]() {
@@ -1132,12 +1135,12 @@ void MainWindow::onSceneAdd() {
   auto *spinTimeout = new QSpinBox();
   spinTimeout->setRange(1000, 300000);
   spinTimeout->setSingleStep(1000);
-  spinTimeout->setValue(4000);
+  spinTimeout->setValue(vinput::scene::kDefaultTimeoutMs);
   spinTimeout->setSuffix(" ms");
   auto *spinCandidates = new QSpinBox();
   spinCandidates->setRange(vinput::scene::kMinCandidateCount,
                            vinput::scene::kMaxCandidateCount);
-  spinCandidates->setValue(1);
+  spinCandidates->setValue(vinput::scene::kDefaultCandidateCount);
 
   CoreConfig config = LoadCoreConfig();
   SetupProviderModelCombos(comboProvider, comboModel, config);
