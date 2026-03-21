@@ -1018,6 +1018,7 @@ void VinputEngine::onStatusChanged(fcitx::dbus::Message &msg) {
   } else if (status == kStatusPostprocessing) {
     updatePreedit(active_ic_, PostprocessingPreeditText());
   } else {
+    awaiting_result_ = false;
     clearPreedit(active_ic_);
   }
 }
