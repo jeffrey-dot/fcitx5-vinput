@@ -47,6 +47,12 @@ bool ResolveSymlinkPath(const std::filesystem::path& path,
     std::error_code ec;
     const auto status = std::filesystem::symlink_status(current, ec);
     if (ec) {
+      // If the path doesn't exist, treat it as a non-symlink file.
+      // Allows creating new files that don't exist yet.
+      if (ec == std::errc::no_such_file_or_directory) {
+        *resolved = current;
+        return true;
+      }
       if (error) {
         *error = "Failed to inspect path " + current.string() + ": " +
                  ec.message();
