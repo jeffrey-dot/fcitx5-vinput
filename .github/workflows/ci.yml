@@ -34,8 +34,7 @@ jobs:
         run: |
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="${VINPUT_CMAKE_PREFIX_PATH}" \
-            -DVINPUT_RUNTIME_MODE=system
+            -DCMAKE_PREFIX_PATH="${VINPUT_CMAKE_PREFIX_PATH}"
 
       - name: Build
         run: cmake --build build
@@ -76,8 +75,7 @@ jobs:
         run: |
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="${VINPUT_CMAKE_PREFIX_PATH}" \
-            -DVINPUT_RUNTIME_MODE=system
+            -DCMAKE_PREFIX_PATH="${VINPUT_CMAKE_PREFIX_PATH}"
 
       - name: Build
         run: cmake --build build

@@ -53,10 +53,6 @@ jobs:
 
   build-linux-tarball:
     needs: source_archive
-    strategy:
-      fail-fast: false
-      matrix:
-        runtime_mode: [system, bundled]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -88,7 +84,7 @@ jobs:
             -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
             -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
             -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}" \
-            -DVINPUT_RUNTIME_MODE="${{ matrix.runtime_mode }}"
+            -DVINPUT_RUNTIME_MODE=bundled
 
       - name: Build
         run: cmake --build build
@@ -98,7 +94,7 @@ jobs:
         run: |
           version="${{ needs.source_archive.outputs.package_version }}"
           release="${{ needs.source_archive.outputs.package_release }}"
-          mode="${{ matrix.runtime_mode }}"
+          mode="bundled"
           stage_root="${RUNNER_TEMP}/stage"
           archive_root="fcitx5-vinput_${version}-${release}_linux_x86_64_${mode}"
 
@@ -110,14 +106,190 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: release-tarball-${{ matrix.runtime_mode }}
-          path: dist/fcitx5-vinput_*_linux_x86_64_${{ matrix.runtime_mode }}.tar.gz
+          name: release-tarball-bundled
+          path: dist/fcitx5-vinput_*_linux_x86_64_bundled.tar.gz
+          if-no-files-found: error
+
+  build-deb-ubuntu:
+    needs: source_archive
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: ./scripts/ci-install-build-deps.sh ubuntu24.04
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Install pre-built sherpa-onnx
+        run: |
+          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
+          sudo bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
+          sudo ldconfig
+
+      - name: Build Debian package
+        shell: bash
+        run: |
+          cmake -S "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}" -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
+            -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
+            -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
+            -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}"
+
+          cmake --build build
+          cpack --config build/CPackConfig.cmake -G DEB -B dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-deb-ubuntu24.04
+          path: dist/*.deb
+          if-no-files-found: error
+
+  build-deb-debian12:
+    needs: source_archive
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: ./scripts/ci-install-build-deps.sh debian12
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Install pre-built sherpa-onnx
+        run: |
+          tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
+          bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
+          ldconfig
+
+      - name: Build Debian package
+        shell: bash
+        run: |
+          cmake -S "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}" -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
+            -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
+            -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
+            -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}"
+
+          cmake --build build
+          cpack --config build/CPackConfig.cmake -G DEB -B dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-deb-debian12
+          path: dist/*.deb
+          if-no-files-found: error
+
+  build-rpm-fedora:
+    needs: source_archive
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:43
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          ./scripts/ci-install-build-deps.sh fedora43
+          dnf install -y rpm-build
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Build RPM package
+        shell: bash
+        run: |
+          version="${{ needs.source_archive.outputs.package_version }}"
+          source ./scripts/sherpa-onnx-vars.sh
+          mkdir -p "${HOME}/rpmbuild/"{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+          cp "dist/${{ needs.source_archive.outputs.source_archive }}" "${HOME}/rpmbuild/SOURCES/"
+          curl -fL --retry 3 --retry-delay 2 \
+            -o "${HOME}/rpmbuild/SOURCES/${SHERPA_ONNX_ARCHIVE}" \
+            "${SHERPA_ONNX_URL}"
+
+          sed \
+            -e "s/@VINPUT_VERSION@/${version}/g" \
+            -e "s/@SHERPA_ONNX_VERSION@/${SHERPA_ONNX_VERSION}/g" \
+            packaging/fedora/fcitx5-vinput.spec \
+            > "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec"
+
+          rpmbuild -bb "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec" \
+            --define "_topdir $HOME/rpmbuild"
+
+          mkdir -p dist
+          find "${HOME}/rpmbuild/RPMS" -name '*.rpm' -exec cp {} dist/ \;
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-rpm-fedora43
+          path: dist/*.rpm
+          if-no-files-found: error
+
+  build-arch:
+    needs: source_archive
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: ./scripts/ci-install-build-deps.sh archlinux
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: dist
+
+      - name: Render PKGBUILD
+        shell: bash
+        run: |
+          cp "dist/${{ needs.source_archive.outputs.source_archive }}" packaging/arch/
+          VINPUT_PKGURL="${{ github.server_url }}/${{ github.repository }}" \
+            ./scripts/render-arch-pkgbuild.sh \
+            packaging/arch/PKGBUILD.in \
+            packaging/arch/PKGBUILD \
+            "${{ needs.source_archive.outputs.package_version }}" \
+            "packaging/arch/${{ needs.source_archive.outputs.source_archive }}" \
+            "${{ needs.source_archive.outputs.package_release }}"
+
+      - name: Build Arch package
+        shell: bash
+        run: |
+          useradd -m builder
+          chown -R builder:builder "${GITHUB_WORKSPACE}"
+          su builder -c "cd '${GITHUB_WORKSPACE}/packaging/arch' && makepkg --noconfirm --cleanbuild --force"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-arch
+          path: packaging/arch/*.pkg.tar.zst
           if-no-files-found: error
 
   publish-release:
     needs:
       - source_archive
       - build-linux-tarball
+      - build-deb-ubuntu
+      - build-deb-debian12
+      - build-rpm-fedora
+      - build-arch
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}

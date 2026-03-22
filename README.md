@@ -61,7 +61,7 @@ sudo apt-get install -f
 
 ### Build from Source
 
-**Dependencies:** `cmake` `fcitx5` `sherpa-onnx` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
+**Dependencies:** `cmake` `fcitx5` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
 
 ```bash
 sudo bash scripts/build-sherpa-onnx.sh
@@ -70,9 +70,23 @@ cmake --build build
 sudo cmake --install build
 ```
 
-If `sherpa-onnx` is already installed system-wide on your machine, you can skip
-the first step. The local and CI builds are intended to use the same
-system-level dependency layout.
+If you use `just`, the repository now includes a thin wrapper around the same
+commands:
+
+```bash
+just sherpa
+just release
+just build
+sudo just install
+```
+
+The first step downloads the pre-built `sherpa-onnx` runtime used by local
+builds and release packaging. Runtime libraries are bundled with the installed
+artifacts instead of being declared as a separate system package dependency.
+Source builds now default to the Fcitx5 system prefix (`/usr`) so the addon is
+installed under the directories Fcitx5 scans. If you installed an older build
+under `/usr/local`, reinstall from a clean build directory so `vinput.conf` and
+`fcitx5-vinput.so` move to the Fcitx5 system paths.
 
 ## Quick Start
 

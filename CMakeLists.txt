@@ -4,6 +4,14 @@ set(VINPUT_PROJECT_VERSION "1.1.1"
     CACHE STRING "Project version for builds and release artifacts")
 project(fcitx5-vinput VERSION ${VINPUT_PROJECT_VERSION} LANGUAGES CXX)
 
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    # Fcitx5 discovers addons from its system prefix. Keep the source-build
+    # default aligned so `cmake --install` produces a visible addon.
+    set(CMAKE_INSTALL_PREFIX "/usr"
+        CACHE PATH "Install path prefix, prepended onto install directories."
+        FORCE)
+endif()
+
 include(GNUInstallDirs)
 
 set(VINPUT_PACKAGE_RELEASE "1"

@@ -61,7 +61,7 @@ sudo apt-get install -f
 
 ### 从源码编译
 
-**依赖：** `cmake` `fcitx5` `sherpa-onnx` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
+**依赖：** `cmake` `fcitx5` `pipewire` `libcurl` `nlohmann-json` `CLI11` `Qt6`
 
 ```bash
 sudo bash scripts/build-sherpa-onnx.sh
@@ -70,8 +70,22 @@ cmake --build build
 sudo cmake --install build
 ```
 
-如果你的机器已经以系统级方式安装好了 `sherpa-onnx`，可以跳过第一步。
-本地和 CI 现在都默认使用同一种系统级依赖布局。
+如果你使用 `just`，仓库里现在也提供了一层很薄的命令包装，底层仍然是同一套
+CMake / 脚本入口：
+
+```bash
+just sherpa
+just release
+just build
+sudo just install
+```
+
+第一步会下载本地构建和发布打包所用的预编译 `sherpa-onnx` 运行库。
+这些运行库会随安装产物一起打包，而不是作为单独的系统依赖项声明。
+从源码构建时现在默认安装到 Fcitx5 的系统前缀（`/usr`），这样 addon
+会落到 Fcitx5 会扫描的目录里。若你之前的旧构建已经安装到 `/usr/local`，
+请清理旧 build 目录后重新安装，让 `vinput.conf` 和 `fcitx5-vinput.so`
+进入 Fcitx5 的系统路径。
 
 ## 快速开始
 
