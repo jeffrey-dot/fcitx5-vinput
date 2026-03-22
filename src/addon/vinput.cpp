@@ -2,19 +2,76 @@
 #include "common/core_config.h"
 #include "common/dbus_interface.h"
 #include "common/i18n.h"
+#include "common/path_utils.h"
 #include "common/postprocess_scene.h"
 
 #include <dbus_public.h>
 #include <fcitx-utils/event.h>
 #include <fcitx/inputcontext.h>
+#include <fcitx/log.h>
 
 #include <cstdio>
+#include <fstream>
 #include <string>
 
 using namespace vinput::dbus;
 
+namespace {
+// Auto-install systemd service when running inside flatpak
+void autoInstallSystemdServiceInFlatpak() {
+  if (!vinput::path::isInsideFlatpak())
+    return;
+
+  const char *home = getenv("HOME");
+  if (!home)
+    return;
+
+  // dest: install to ~/.config/systemd/user/vinput-daemon.service
+  const std::filesystem::path dest =
+      std::filesystem::path(home) / ".config" / "systemd" / "user" /
+      "vinput-daemon.service";
+
+  if (std::filesystem::exists(dest))
+    return;
+
+  // src: is bundled inside the flatpak
+  const char *src = "/app/addons/Vinput/share/systemd/user/vinput-daemon.service";
+  std::ifstream src_f(src);
+  if (!src_f)
+  {
+    FCITX_LOG(Error) << "vinput: service file not found at " << src;
+    return;
+  }
+    std::string content((std::istreambuf_iterator<char>(src_f)), {});
+
+    // Replace ExecStart=/usr/bin/vinput-daemon to flatpak command
+    auto pos = content.find("ExecStart=");
+    if (pos != std::string::npos) {
+        auto end = content.find('\n', pos);
+        content.replace(pos, end - pos,
+            "ExecStart=flatpak run --command=/app/addons/Vinput/bin/vinput-daemon org.fcitx.Fcitx5");
+    }
+
+    std::error_code ec;
+    std::filesystem::create_directories(dest.parent_path(), ec);
+    if (ec) {
+        FCITX_LOG(Error) << "vinput: failed to create systemd user dir: " << ec.message();
+        return;
+    }
+    std::ofstream dst_f(dest);
+    if (!(dst_f << content)) {
+        FCITX_LOG(Error) << "vinput: failed to write service file to " << dest;
+        return;
+    }
+    FCITX_LOG(Info) << "vinput: installed vinput-daemon.service to " << dest;
+
+    (void)system("flatpak-spawn --host systemctl --user daemon-reload");
+}
+} // namespace
+
 VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
   vinput::i18n::Init();
+  autoInstallSystemdServiceInFlatpak();
   reloadConfig();
 
   eventHandlers_.emplace_back(instance_->watchEvent(

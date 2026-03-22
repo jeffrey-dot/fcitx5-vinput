@@ -1,4 +1,5 @@
 #include "cli/systemd_client.h"
+#include "common/path_utils.h"
 #include <sys/wait.h>
 #include <unistd.h>
 #include <string>
@@ -7,10 +8,19 @@
 namespace vinput::cli {
 
 static int RunCommand(const std::vector<const char*>& args) {
+    // Add "flatpak-spawn --host" prefix if inside flatpak
+    std::vector<const char*> actual_args;
+    if (vinput::path::isInsideFlatpak()) {
+        actual_args = {"flatpak-spawn", "--host"};
+        for (const auto* a : args) actual_args.push_back(a);
+    } else {
+        actual_args = args;
+    }
+
     pid_t pid = fork();
     if (pid < 0) return -1;
     if (pid == 0) {
-        execvp(args[0], const_cast<char* const*>(args.data()));
+        execvp(actual_args[0], const_cast<char* const*>(actual_args.data()));
         _exit(127);
     }
     int status = 0;

@@ -1,5 +1,6 @@
 #include "common/path_utils.h"
 #include <cstdlib>
+#include <sys/stat.h>
 
 namespace vinput::path {
 
@@ -37,6 +38,11 @@ std::filesystem::path CoreConfigPath() {
     return {};
   return std::filesystem::path(home) / ".config" / "vinput" /
          "config.json";
+}
+
+bool isInsideFlatpak() {
+  struct stat st;
+  return stat("/.flatpak-info", &st) == 0;
 }
 
 } // namespace vinput::path

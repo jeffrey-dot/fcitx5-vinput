@@ -20,3 +20,5 @@ __pycache__/
 *.pyc
 .vscode/
 .codex/
+repo/
+fcitx5-vinput.flatpak
