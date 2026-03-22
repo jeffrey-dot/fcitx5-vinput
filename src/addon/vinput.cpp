@@ -64,7 +64,10 @@ void autoInstallSystemdServiceInFlatpak() {
     }
     FCITX_LOG(Info) << "vinput: installed vinput-daemon.service to " << dest;
 
-    (void)system("flatpak-spawn --host systemctl --user daemon-reload");
+    int ret = system("flatpak-spawn --host systemctl --user daemon-reload");
+    if (ret != 0) {
+        FCITX_LOG(Error) << "vinput: failed to reload systemd user daemon, return code: " << ret;
+    }
 }
 } // namespace
 

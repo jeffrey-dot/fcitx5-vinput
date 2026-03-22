@@ -1780,6 +1780,30 @@ void MainWindow::onBrowseHotwordsClicked() {
 // Daemon Control
 // ---------------------------------------------------------------------------
 
+void MainWindow::checkFlatpakPermissions() {
+  if (!vinput::path::isInsideFlatpak()) return;
+
+  // Try to find permissions
+  bool missing = false;
+  QByteArray info = []{
+      QFile f("/.flatpak-info");
+      return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray{};
+  }();
+  if (!info.contains("pipewire")) missing = true;
+  if (!info.contains("xdg-config/systemd")) missing = true;
+
+  if (!missing) return;
+
+  QMessageBox msg(this);
+  msg.setIcon(QMessageBox::Warning);
+  msg.setWindowTitle(tr("Additional Install Required"));
+  msg.setText(tr("Vinput requires additional Flatpak permissions.\n"
+                 "Please follow the instructions."));
+  if (msg.exec() == QMessageBox::Ok) {
+      QDesktopServices::openUrl(QUrl("https://github.com/xifan2333/fcitx5-vinput#Flatpak"));
+  }
+}
+
 void MainWindow::refreshDaemonStatus() {
   QJsonDocument doc;
   QString err;

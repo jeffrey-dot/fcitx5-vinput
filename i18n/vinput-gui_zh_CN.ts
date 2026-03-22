@@ -402,6 +402,16 @@
         <source>command</source>
         <translation>命令</translation>
     </message>
+    <message>
+        <source>Additional Install Required</source>
+        <translation>需要额外配置</translation>
+    </message>
+    <message>
+        <source>Vinput requires additional Flatpak permissions.
+Please follow the instructions.</source>
+        <translation>语音输入需要额外的 Flatpak 权限
+请参考说明文档</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>

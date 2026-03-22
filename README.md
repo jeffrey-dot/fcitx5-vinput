@@ -133,6 +133,8 @@ Or open the Vinput addon in Fcitx5 Configuration.
 
 Use `vinput --help` or `vinput <subcommand> --help` for the full current syntax.
 
+> To use the Vinput CLI with a Flatpak installation, use `flatpak run --command=/app/addons/Vinput/bin/vinput org.fcitx.Fcitx5 --help`
+
 <details>
 <summary>Model Management</summary>
 
@@ -389,6 +391,37 @@ Reference implementations:
 | Plugin config (keybindings, etc.) | `~/.config/fcitx5/conf/vinput.conf` |
 | Core config (model, LLM, scenes) | `~/.config/vinput/config.json` |
 | Model directory | `~/.local/share/fcitx5-vinput/models/` |
+
+## Flatpak
+
+In Flatpak, Vinput is installed as an Fcitx5 Add-on.
+
+### Additional Permissions
+
+The permissions for the Vinput Add-on depend on the Fcitx5 instance. So, after installation, the following commands need to be executed:
+
+```bash
+# Provide pipewire microphone access
+`flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5`
+# Enable vinput-daemon.service to be created
+`flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5`
+```
+
+After execution, Fcitx5 must be restarted. For example:
+
+```bash
+flatpak kill org.fcitx.Fcitx5
+```
+
+### Flatpak Configuration Files
+
+Flatpak configuration files are usually located in `.var/app`
+
+| File | Path |
+|------|------|
+| Plugin config (keybindings, etc.) | `~/.var/app/org.fcitx.Fcitx5/config/fcitx5/conf/vinput.conf` |
+| Core config (model, LLM, scenes) | `~/.var/app/org.fcitx.Fcitx5/config/vinput/config.json` |
+| Model directory | `~/.var/app/org.fcitx.Fcitx5/data/vinput/models/` |
 
 ## Release
 

@@ -132,6 +132,8 @@ vinput-gui
 
 完整当前语法可使用 `vinput --help` 或 `vinput <子命令> --help` 查看。
 
+> 如果要在 Flatpak 安装下使用 Vinput CLI，请使用 `flatpak run --command=/app/addons/Vinput/bin/vinput org.fcitx.Fcitx5 --help`
+
 <details>
 <summary>模型管理</summary>
 
@@ -383,6 +385,37 @@ vinput scene use polish
 | Fcitx5 插件配置（按键等） | `~/.config/fcitx5/conf/vinput.conf` |
 | 核心配置（模型、LLM、场景） | `~/.config/vinput/config.json` |
 | 模型目录 | `~/.local/share/fcitx5-vinput/models/` |
+
+## Flatpak
+
+Flatpak 下，Vinput 是作为 Fcitx5 Add-on 的形式安装的
+
+### 额外的权限
+
+Vinput Add-on 的权限取决于 Fcitx5 本体，因此安装后需要执行以下命令，来为 Fcitx5 提供权限
+
+```bash
+# 提供基于 pipewire 的麦克风访问
+flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5
+# 让 vinput-daemon.service 能被创建
+flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5
+```
+
+执行后，必须重启 Fcitx5。可以：
+
+```bash
+flatpak kill org.fcitx.Fcitx5
+```
+
+### Flatpak 配置文件位置
+
+Flatpak 下配置文件通常在 `.var/app` 中
+
+| 文件 | 路径 |
+|------|------|
+| Fcitx5 插件配置（按键等） | `~/.var/app/org.fcitx.Fcitx5/config/fcitx5/conf/vinput.conf` |
+| 核心配置（模型、LLM、场景） | `~/.var/app/org.fcitx.Fcitx5/config/vinput/config.json` |
+| 模型目录 | `~/.var/app/org.fcitx.Fcitx5/data/vinput/models/` |
 
 ## 打包发布
 
