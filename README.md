@@ -416,9 +416,9 @@ The permissions for the Vinput Add-on depend on the Fcitx5 instance. So, after i
 
 ```bash
 # Provide pipewire microphone access
-`flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5`
+flatpak override --user --filesystem=xdg-run/pipewire-0 org.fcitx.Fcitx5
 # Enable vinput-daemon.service to be created
-`flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5`
+flatpak override --user --filesystem=xdg-config/systemd:create org.fcitx.Fcitx5
 ```
 
 After execution, Fcitx5 must be restarted. For example:

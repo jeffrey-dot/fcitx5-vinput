@@ -30,45 +30,56 @@ void autoInstallSystemdServiceInFlatpak() {
       std::filesystem::path(home) / ".config" / "systemd" / "user" /
       "vinput-daemon.service";
 
-  if (std::filesystem::exists(dest))
+  std::error_code ec_exists;
+  bool destExists = std::filesystem::exists(dest, ec_exists);
+  if (ec_exists) {
+    FCITX_LOG(Error) << "vinput: failed to check existence of " << dest
+                     << ": " << ec_exists.message();
+    return;
+  }
+  if (destExists)
     return;
 
   // src: is bundled inside the flatpak
   const char *src = "/app/addons/Vinput/share/systemd/user/vinput-daemon.service";
   std::ifstream src_f(src);
-  if (!src_f)
-  {
+  if (!src_f) {
     FCITX_LOG(Error) << "vinput: service file not found at " << src;
     return;
   }
-    std::string content((std::istreambuf_iterator<char>(src_f)), {});
 
-    // Replace ExecStart=/usr/bin/vinput-daemon to flatpak command
-    auto pos = content.find("ExecStart=");
-    if (pos != std::string::npos) {
-        auto end = content.find('\n', pos);
-        content.replace(pos, end - pos,
-            "ExecStart=flatpak run --command=/app/addons/Vinput/bin/vinput-daemon org.fcitx.Fcitx5\n"
-            "ExecStop=flatpak enter org.fcitx.Fcitx5 pkill -INT vinput-daemon");
-    }
+  std::string content((std::istreambuf_iterator<char>(src_f)), {});
 
-    std::error_code ec;
-    std::filesystem::create_directories(dest.parent_path(), ec);
-    if (ec) {
-        FCITX_LOG(Error) << "vinput: failed to create systemd user dir: " << ec.message();
-        return;
-    }
-    std::ofstream dst_f(dest);
-    if (!(dst_f << content)) {
-        FCITX_LOG(Error) << "vinput: failed to write service file to " << dest;
-        return;
-    }
-    FCITX_LOG(Info) << "vinput: installed vinput-daemon.service to " << dest;
+  // Replace ExecStart=/usr/bin/vinput-daemon to flatpak command
+  auto pos = content.find("ExecStart=");
+  if (pos != std::string::npos) {
+    auto end = content.find('\n', pos);
+    content.replace(
+        pos, end - pos,
+        "ExecStart=flatpak run --command=/app/addons/Vinput/bin/vinput-daemon org.fcitx.Fcitx5\n"
+        "ExecStop=flatpak enter org.fcitx.Fcitx5 pkill -INT vinput-daemon");
+  }
 
-    int ret = system("flatpak-spawn --host systemctl --user daemon-reload");
-    if (ret != 0) {
-        FCITX_LOG(Error) << "vinput: failed to reload systemd user daemon, return code: " << ret;
-    }
+  std::error_code ec;
+  std::filesystem::create_directories(dest.parent_path(), ec);
+  if (ec) {
+    FCITX_LOG(Error) << "vinput: failed to create systemd user dir: "
+                     << ec.message();
+    return;
+  }
+  std::ofstream dst_f(dest);
+  if (!(dst_f << content)) {
+    FCITX_LOG(Error) << "vinput: failed to write service file to " << dest;
+    return;
+  }
+  FCITX_LOG(Info) << "vinput: installed vinput-daemon.service to " << dest;
+
+  int ret = system("flatpak-spawn --host systemctl --user daemon-reload");
+  if (ret != 0) {
+    FCITX_LOG(Error)
+        << "vinput: failed to reload systemd user daemon, return code: "
+        << ret;
+  }
 }
 } // namespace
 
