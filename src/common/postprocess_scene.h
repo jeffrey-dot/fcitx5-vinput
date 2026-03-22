@@ -12,6 +12,8 @@ constexpr int kDefaultCandidateCount = 1;
 constexpr int kDefaultTimeoutMs = 4000;
 constexpr std::string_view kRawSceneId = "__raw__";
 constexpr std::string_view kCommandSceneId = "__command__";
+constexpr std::string_view kRawSceneLabelKey = "__label_raw__";
+constexpr std::string_view kCommandSceneLabelKey = "__label_command__";
 
 struct Definition {
   std::string id;
@@ -31,6 +33,7 @@ struct Config {
 
 int NormalizeCandidateCount(int candidate_count);
 bool IsBuiltinSceneId(std::string_view scene_id);
+bool IsBuiltinSceneLabelKey(std::string_view label);
 void NormalizeDefinition(Definition *scene);
 bool ValidateDefinition(const Definition &scene, std::string *error,
                         bool require_id = true);

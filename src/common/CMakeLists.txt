@@ -6,7 +6,6 @@ add_library(vinput-common STATIC
     model_manager.cpp
     model_repository.cpp
     adaptor_manager.cpp
-    asr_provider_script.cpp
     path_utils.cpp
     file_utils.cpp
     process_utils.cpp

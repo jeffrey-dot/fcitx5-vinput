@@ -59,12 +59,11 @@ install(TARGETS vinput
 )
 
 install(PROGRAMS
-    ${CMAKE_SOURCE_DIR}/asr-providers/elevenlabs_speech_to_text.py
+    ${CMAKE_SOURCE_DIR}/data/asr-providers/elevenlabs_speech_to_text.py
     DESTINATION ${VINPUT_ASR_PROVIDER_DIR}
 )
 
 install(PROGRAMS
-    ${CMAKE_SOURCE_DIR}/llm-adaptors/mtranserver_proxy.py
-    ${CMAKE_SOURCE_DIR}/llm-adaptors/mock_llm_adaptor.py
+    ${CMAKE_SOURCE_DIR}/data/llm-adaptors/mtranserver_proxy.py
     DESTINATION ${VINPUT_LLM_ADAPTOR_DIR}
 )

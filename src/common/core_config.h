@@ -5,8 +5,14 @@
 #include <string>
 #include <vector>
 
-#include "common/asr_defaults.h"
 #include "common/postprocess_scene.h"
+
+namespace vinput::asr {
+
+inline constexpr char kLocalProviderType[] = "local";
+inline constexpr char kCommandProviderType[] = "command";
+
+}  // namespace vinput::asr
 
 struct LlmProvider {
   std::string name;
@@ -22,13 +28,14 @@ struct LlmAdaptor {
 };
 
 struct AsrProvider {
-  std::string name{vinput::asr::kDefaultProviderName};
-  std::string type{vinput::asr::kBuiltinProviderType};
+  std::string name;
+  std::string type;
+  bool builtin{false};
   std::string model;
   std::string command;
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
-  int timeoutMs{vinput::asr::kDefaultProviderTimeoutMs};
+  int timeoutMs = 0;
 };
 
 struct RegistrySource {
@@ -37,13 +44,14 @@ struct RegistrySource {
 };
 
 struct CoreConfig {
-  std::string captureDevice{"default"};
+  int version = 0;
+  std::string captureDevice;
   std::string modelBaseDir;
   struct Registry {
     std::vector<RegistrySource> sources;
   } registry;
 
-  std::string defaultLanguage{"zh"};
+  std::string defaultLanguage;
 
   std::string hotwordsFile;
 
@@ -53,7 +61,7 @@ struct CoreConfig {
   } llm;
 
   struct Asr {
-    std::string activeProvider{vinput::asr::kDefaultProviderName};
+    std::string activeProvider;
     bool normalizeAudio{true};
     struct Vad {
       bool enabled{true};
@@ -62,13 +70,14 @@ struct CoreConfig {
   } asr;
 
   struct Scenes {
-    std::string activeScene{std::string(vinput::scene::kRawSceneId)};
+    std::string activeScene;
     std::vector<vinput::scene::Definition> definitions;
   } scenes;
 };
 
 // API Functions
 CoreConfig LoadCoreConfig();
+bool LoadBundledDefaultCoreConfig(CoreConfig *config, std::string *error);
 bool SaveCoreConfig(const CoreConfig &config);
 std::string GetCoreConfigPath();
 
@@ -80,13 +89,12 @@ const LlmAdaptor *ResolveLlmAdaptor(const CoreConfig &config,
 const AsrProvider *ResolveAsrProvider(const CoreConfig &config,
                                       const std::string &provider_id);
 const AsrProvider *ResolveActiveAsrProvider(const CoreConfig &config);
-bool IsManagedBuiltinAsrProviderName(std::string_view provider_name);
-const AsrProvider *ResolveActiveBuiltinAsrProvider(const CoreConfig &config);
-const AsrProvider *ResolvePreferredBuiltinAsrProvider(const CoreConfig &config);
-std::string ResolveActiveBuiltinModel(const CoreConfig &config);
-std::string ResolvePreferredBuiltinModel(const CoreConfig &config);
+const AsrProvider *ResolveActiveLocalAsrProvider(const CoreConfig &config);
+const AsrProvider *ResolvePreferredLocalAsrProvider(const CoreConfig &config);
+std::string ResolveActiveLocalModel(const CoreConfig &config);
+std::string ResolvePreferredLocalModel(const CoreConfig &config);
 std::vector<std::string> ResolveRegistryUrls(const CoreConfig &config);
-bool SetPreferredBuiltinModel(CoreConfig *config, const std::string &model,
-                              std::string *error);
+bool SetPreferredLocalModel(CoreConfig *config, const std::string &model,
+                            std::string *error);
 const vinput::scene::Definition *FindCommandScene(const CoreConfig &config);
 std::filesystem::path ResolveModelBaseDir(const CoreConfig &config);

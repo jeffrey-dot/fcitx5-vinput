@@ -24,6 +24,8 @@ struct Info {
   std::vector<std::string> env_entries;
   Source source = Source::kBuiltin;
   std::filesystem::path path;
+  std::string default_command;
+  std::vector<std::string> default_args;
   bool executable = false;
 };
 

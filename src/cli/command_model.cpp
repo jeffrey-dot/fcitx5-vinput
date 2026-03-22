@@ -17,7 +17,7 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
     auto base_dir = ResolveModelBaseDir(config);
     const auto registry_urls = ResolveRegistryUrls(config);
     ModelManager mgr(base_dir.string());
-    const std::string active_model = ResolvePreferredBuiltinModel(config);
+    const std::string active_model = ResolvePreferredLocalModel(config);
 
     if (!remote) {
         auto models = mgr.ListDetailed(active_model);
@@ -181,7 +181,7 @@ int RunModelUse(const std::string& name, Formatter& fmt, const CliContext& /*ctx
         return 1;
     }
 
-    if (!SetPreferredBuiltinModel(&config, name, &err)) {
+    if (!SetPreferredLocalModel(&config, name, &err)) {
         fmt.PrintError(err);
         return 1;
     }
@@ -204,7 +204,7 @@ int RunModelRemove(const std::string& name, bool force, Formatter& fmt, const Cl
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
-    const std::string active_model = ResolvePreferredBuiltinModel(config);
+    const std::string active_model = ResolvePreferredLocalModel(config);
 
     if (name == active_model && !force) {
         fmt.PrintError(vinput::str::FmtStr(_("Cannot remove active model '%s'. Use --force to override."), name));

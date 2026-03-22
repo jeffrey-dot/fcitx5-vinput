@@ -29,12 +29,12 @@ struct SearchRoot {
 };
 
 fs::path BuiltinAdaptorDir() {
-  const fs::path installed = VINPUT_LLM_ADAPTOR_INSTALL_DIR;
+  const fs::path source = VINPUT_LLM_ADAPTOR_SOURCE_DIR;
   std::error_code ec;
-  if (fs::exists(installed, ec) && !ec) {
-    return installed;
+  if (fs::exists(source, ec) && !ec) {
+    return source;
   }
-  return fs::path(VINPUT_LLM_ADAPTOR_SOURCE_DIR);
+  return fs::path(VINPUT_LLM_ADAPTOR_INSTALL_DIR);
 }
 
 std::vector<SearchRoot> BuildSearchRoots() {
@@ -118,10 +118,20 @@ bool ProcessExists(pid_t pid) {
   return kill(pid, 0) == 0 || errno == EPERM;
 }
 
+vinput::process::CommandSpec DefaultCommandSpecForPath(const fs::path &path) {
+  vinput::process::CommandSpec spec;
+  if (path.extension() == ".py") {
+    spec.command = "python3";
+    spec.args = {path.string()};
+    return spec;
+  }
+  spec.command = path.string();
+  return spec;
+}
+
 vinput::process::CommandSpec BuildCommandSpec(const Info &info,
                                               const CoreConfig &config) {
-  vinput::process::CommandSpec spec;
-  spec.command = info.path.string();
+  vinput::process::CommandSpec spec = DefaultCommandSpecForPath(info.path);
 
   const auto *configured = ResolveLlmAdaptor(config, info.id);
   if (!configured) {
@@ -175,6 +185,11 @@ std::vector<Info> Discover(std::string *error) {
       info.name = info.id;
       info.source = root.source;
       info.path = entry.path();
+      {
+        const auto spec = DefaultCommandSpecForPath(info.path);
+        info.default_command = spec.command;
+        info.default_args = spec.args;
+      }
       info.executable = IsExecutableFile(info.path);
       if (!info.executable) {
         continue;

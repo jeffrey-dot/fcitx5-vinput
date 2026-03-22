@@ -24,7 +24,7 @@ Environment:
 
 Example:
     ELEVENLABS_API_KEY=... \
-    python3 asr-providers/elevenlabs_speech_to_text.py
+    python3 data/asr-providers/elevenlabs_speech_to_text.py
 """
 
 import json

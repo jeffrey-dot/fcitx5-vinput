@@ -301,10 +301,11 @@ vinput scene use polish
 
 ## Provider Scripts And Adaptor Contracts
 
-Optional integration scripts now live under two flat directories:
+Optional integration scripts now live under two flat directories inside
+`data/`:
 
-- `asr-providers/`: external ASR provider scripts
-- `llm-adaptors/`: LLM OpenAI-compatible adaptor scripts
+- `data/asr-providers/`: external ASR provider scripts
+- `data/llm-adaptors/`: LLM OpenAI-compatible adaptor scripts
 
 The `scripts/` directory is reserved for project maintenance tasks such as
 build, packaging, and checks.
@@ -334,7 +335,10 @@ A minimal provider config looks like this:
 {
   "name": "elevenlabs",
   "type": "command",
-  "command": "elevenlabs_speech_to_text",
+  "command": "python3",
+  "args": [
+    "/usr/share/fcitx5-vinput/asr-providers/elevenlabs_speech_to_text.py"
+  ],
   "env": {
     "ELEVENLABS_API_KEY": "..."
   },
@@ -345,8 +349,8 @@ A minimal provider config looks like this:
 Built-in ASR provider scripts are installed under
 `/usr/share/fcitx5-vinput/asr-providers/` by default. User overrides can be
 placed under `~/.config/vinput/asr-providers/`; user files take precedence over
-built-in scripts with the same script name. If you configure an absolute path,
-the script can live anywhere runnable.
+built-in scripts with the same script name. `command` should be the executable
+or interpreter, and the script path should live in `args`.
 
 ### LLM Adaptor Contract
 
@@ -400,8 +404,8 @@ script directly and does not inject positional arguments.
 
 Reference implementations:
 
-- `llm-adaptors/mtranserver_proxy.py`
-- `asr-providers/elevenlabs_speech_to_text.py`
+- `data/llm-adaptors/mtranserver_proxy.py`
+- `data/asr-providers/elevenlabs_speech_to_text.py`
 
 ## Configuration Files
 

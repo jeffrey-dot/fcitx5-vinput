@@ -297,10 +297,10 @@ vinput scene use polish
 
 ## Provider 脚本与 Adaptor 约定
 
-仓库里的可选集成脚本现在拆成两个平铺目录：
+仓库里的可选集成脚本现在统一放在 `data/` 下的两个平铺目录：
 
-- `asr-providers/`：外部 ASR provider 脚本
-- `llm-adaptors/`：LLM OpenAI 兼容 adaptor 脚本
+- `data/asr-providers/`：外部 ASR provider 脚本
+- `data/llm-adaptors/`：LLM OpenAI 兼容 adaptor 脚本
 
 `scripts/` 目录只保留构建、检查、打包之类的项目维护脚本。
 
@@ -328,7 +328,10 @@ vinput scene use polish
 {
   "name": "elevenlabs",
   "type": "command",
-  "command": "elevenlabs_speech_to_text",
+  "command": "python3",
+  "args": [
+    "/usr/share/fcitx5-vinput/asr-providers/elevenlabs_speech_to_text.py"
+  ],
   "env": {
     "ELEVENLABS_API_KEY": "..."
   },
@@ -339,7 +342,7 @@ vinput scene use polish
 内建 ASR provider 脚本默认安装到
 `/usr/share/fcitx5-vinput/asr-providers/`。用户覆盖脚本放到
 `~/.config/vinput/asr-providers/` 即可；同名文件会优先覆盖内建脚本。
-如果配置里写的是绝对路径，那脚本本身放哪都可以，只要可运行即可。
+`command` 应该填写可执行命令或解释器，脚本路径放在 `args` 里。
 
 ### LLM Adaptor 协议
 
@@ -389,8 +392,8 @@ vinput scene use polish
 
 参考实现：
 
-- `llm-adaptors/mtranserver_proxy.py`
-- `asr-providers/elevenlabs_speech_to_text.py`
+- `data/llm-adaptors/mtranserver_proxy.py`
+- `data/asr-providers/elevenlabs_speech_to_text.py`
 
 ## 配置文件位置
 

@@ -207,6 +207,14 @@
         <translation>警告</translation>
     </message>
     <message>
+        <source>Raw</source>
+        <translation>原始</translation>
+    </message>
+    <message>
+        <source>Command</source>
+        <translation>命令</translation>
+    </message>
+    <message>
         <source>The scene '%1' is either active or builtin. Are you SURE you want to forcibly remove it?</source>
         <translation>场景“%1”处于活动状态或者是内置场景，您确定必须强制移除它吗？</translation>
     </message>
@@ -359,6 +367,10 @@
         <translation>添加 ASR 提供商</translation>
     </message>
     <message>
+        <source>Adaptor ID:</source>
+        <translation>适配器 ID：</translation>
+    </message>
+    <message>
         <source>Are you sure you want to remove ASR provider '%1'?</source>
         <translation>确定要移除 ASR 提供商“%1”吗？</translation>
     </message>
@@ -373,6 +385,14 @@
     <message>
         <source>Command:</source>
         <translation>命令：</translation>
+    </message>
+    <message>
+        <source>Command / Interpreter:</source>
+        <translation>命令 / 解释器：</translation>
+    </message>
+    <message>
+        <source>Configure LLM Adaptor</source>
+        <translation>配置 LLM 适配器</translation>
     </message>
     <message>
         <source>Edit ASR Provider</source>
@@ -423,6 +443,10 @@
         <translation>环境变量：%1</translation>
     </message>
     <message>
+        <source>Supported env entries:</source>
+        <translation>支持的环境变量项：</translation>
+    </message>
+    <message>
         <source>One KEY=VALUE entry per line</source>
         <translation>每行一个 KEY=VALUE</translation>
     </message>
@@ -431,12 +455,12 @@
         <translation>每行一个参数</translation>
     </message>
     <message>
-        <source>Selected model '%1' has been assigned to the preferred builtin ASR provider.</source>
-        <translation>已将所选模型“%1”分配给首选的内建 ASR 提供商。</translation>
+        <source>Selected model '%1' has been assigned to the preferred local ASR provider.</source>
+        <translation>已将所选模型“%1”分配给首选的本地 ASR 提供商。</translation>
     </message>
     <message>
-        <source>Builtin Model Updated</source>
-        <translation>内建模型已更新</translation>
+        <source>Local Model Updated</source>
+        <translation>本地模型已更新</translation>
     </message>
     <message>
         <source>Start</source>
@@ -455,6 +479,10 @@
         <translation>内置</translation>
     </message>
     <message>
+        <source>local</source>
+        <translation>本地</translation>
+    </message>
+    <message>
         <source>user</source>
         <translation>用户</translation>
     </message>
@@ -469,6 +497,14 @@
     <message>
         <source>command</source>
         <translation>命令</translation>
+    </message>
+    <message>
+        <source>Command or interpreter</source>
+        <translation>命令或解释器</translation>
+    </message>
+    <message>
+        <source>Builtin ASR providers cannot be removed.</source>
+        <translation>内建 ASR 提供商不能被移除。</translation>
     </message>
 </context>
 <context>

@@ -58,6 +58,11 @@ configure_file(
     ${CMAKE_BINARY_DIR}/config.h
     @ONLY)
 
+install(FILES
+    ${CMAKE_SOURCE_DIR}/data/default-config.json
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput
+)
+
 include_directories(${CMAKE_BINARY_DIR})
 
 

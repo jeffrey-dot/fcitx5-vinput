@@ -17,9 +17,27 @@
 #include "cli/command_scene.h"
 #include "cli/command_status.h"
 #include "cli/formatter.h"
-#include "common/asr_defaults.h"
+#include "common/core_config.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"
+
+namespace {
+
+AsrProvider LoadDefaultAsrProviderTemplate() {
+  CoreConfig config;
+  std::string error;
+  if (!LoadBundledDefaultCoreConfig(&config, &error)) {
+    return {};
+  }
+
+  if (!config.asr.providers.empty()) {
+    return config.asr.providers.front();
+  }
+
+  return {};
+}
+
+}  // namespace
 
 int main(int argc, char *argv[]) {
   vinput::i18n::Init();
@@ -137,18 +155,21 @@ int main(int argc, char *argv[]) {
       asr_cmd->add_subcommand("list", _("List configured ASR providers"));
   asr_list->alias("ls");
 
+  const AsrProvider asr_add_default = LoadDefaultAsrProviderTemplate();
   std::string asr_add_name;
-  std::string asr_add_type = vinput::asr::kBuiltinProviderType;
+  std::string asr_add_type = asr_add_default.type.empty()
+                                 ? std::string(vinput::asr::kLocalProviderType)
+                                 : asr_add_default.type;
   std::string asr_add_model;
   std::string asr_add_command;
   std::vector<std::string> asr_add_args;
   std::vector<std::string> asr_add_env;
-  int asr_add_timeout_ms = vinput::asr::kDefaultProviderTimeoutMs;
+  int asr_add_timeout_ms = asr_add_default.timeoutMs;
   auto *asr_add = asr_cmd->add_subcommand("add", _("Add an ASR provider"));
   asr_add->add_option("name", asr_add_name, _("Provider name"))->required();
-  asr_add->add_option("--type", asr_add_type, _("Provider type: builtin or command"))
-      ->default_val(vinput::asr::kBuiltinProviderType);
-  asr_add->add_option("-m,--model", asr_add_model, _("Builtin model name"));
+  asr_add->add_option("--type", asr_add_type, _("Provider type: local or command"))
+      ->default_val(asr_add_type);
+  asr_add->add_option("-m,--model", asr_add_model, _("Local model name"));
   asr_add->add_option("-c,--command", asr_add_command,
                       _("Command or executable path for command providers"));
   asr_add->add_option("--arg", asr_add_args, _("Command argument"))
@@ -158,7 +179,7 @@ int main(int argc, char *argv[]) {
   asr_add
       ->add_option("--timeout", asr_add_timeout_ms,
                    _("Provider timeout in milliseconds"))
-      ->default_val(vinput::asr::kDefaultProviderTimeoutMs);
+      ->default_val(asr_add_timeout_ms);
 
   std::string asr_remove_name;
   bool asr_remove_force = false;

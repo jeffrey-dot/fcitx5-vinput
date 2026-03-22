@@ -1,6 +1,5 @@
 #include "asr_provider.h"
 #include "audio_capture.h"
-#include "common/asr_defaults.h"
 #include "common/core_config.h"
 #include "common/dbus_interface.h"
 #include "common/i18n.h"
@@ -46,10 +45,10 @@ bool ShouldDisableAsrAtStartup(const CoreConfig &config, bool disable_asr,
     return true;
   }
 
-  if (provider->type == vinput::asr::kBuiltinProviderType &&
+  if (provider->type == vinput::asr::kLocalProviderType &&
       provider->model.empty()) {
     if (reason) {
-      *reason = _("No builtin ASR model configured.");
+      *reason = _("No local ASR model configured.");
     }
     return true;
   }
@@ -64,7 +63,7 @@ void LogActiveAsrProvider(const CoreConfig &config) {
     return;
   }
 
-  if (provider->type == vinput::asr::kBuiltinProviderType) {
+  if (provider->type == vinput::asr::kLocalProviderType) {
     fprintf(stderr,
             "vinput-daemon: ASR provider=%s type=%s model=%s lang=%s\n",
             provider->name.c_str(), provider->type.c_str(),
