@@ -10,6 +10,7 @@
 #include "cli/command_hotword.h"
 #include "cli/command_init.h"
 #include "cli/command_asr.h"
+#include "cli/command_extension.h"
 #include "cli/command_llm.h"
 #include "cli/command_model.h"
 #include "cli/command_recording.h"
@@ -175,6 +176,28 @@ int main(int argc, char *argv[]) {
   auto *asr_edit =
       asr_cmd->add_subcommand("edit", _("Open an external ASR provider script"));
   asr_edit->add_option("name", asr_edit_name, _("Provider name"))->required();
+
+  // ---- extension subcommand ----
+  auto *extension_cmd =
+      app.add_subcommand("extension", _("Manage built-in and user extensions"));
+  extension_cmd->alias("ext");
+  extension_cmd->require_subcommand(1);
+
+  auto *extension_list =
+      extension_cmd->add_subcommand("list", _("List available extensions"));
+  extension_list->alias("ls");
+
+  std::string extension_start_name;
+  auto *extension_start =
+      extension_cmd->add_subcommand("start", _("Start an LLM extension"));
+  extension_start->add_option("name", extension_start_name,
+                              _("Extension ID"))->required();
+
+  std::string extension_stop_name;
+  auto *extension_stop =
+      extension_cmd->add_subcommand("stop", _("Stop an LLM extension"));
+  extension_stop->add_option("name", extension_stop_name,
+                             _("Extension ID"))->required();
 
   // ---- config subcommand ----
   auto *config_cmd =
@@ -353,6 +376,15 @@ int main(int argc, char *argv[]) {
     return RunAsrUse(asr_use_name, *fmt, ctx);
   } else if (asr_edit->parsed()) {
     return RunAsrEdit(asr_edit_name, *fmt, ctx);
+  }
+
+  // extension
+  else if (extension_list->parsed()) {
+    return RunExtensionList(*fmt, ctx);
+  } else if (extension_start->parsed()) {
+    return RunExtensionStart(extension_start_name, *fmt, ctx);
+  } else if (extension_stop->parsed()) {
+    return RunExtensionStop(extension_stop_name, *fmt, ctx);
   }
 
   // hotword

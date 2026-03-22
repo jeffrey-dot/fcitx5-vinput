@@ -5,6 +5,7 @@
 #include "cli/systemd_client.h"
 #include "common/asr_defaults.h"
 #include "common/core_config.h"
+#include "common/extension_manager.h"
 #include "common/i18n.h"
 #include "common/path_utils.h"
 #include "common/string_utils.h"
@@ -82,6 +83,17 @@ std::filesystem::path ResolveEditableScriptPath(const AsrProvider &provider) {
     return {};
   }
 
+  if (provider.command.find('/') == std::string::npos &&
+      provider.command.rfind(".", 0) != 0 &&
+      provider.command.rfind("~", 0) != 0) {
+    std::string error;
+    auto path = vinput::extension::ResolveCommandPath(
+        provider.command, vinput::extension::Type::kAsr, &error);
+    if (path.has_value()) {
+      return *path;
+    }
+  }
+
   if (provider.command.find('/') != std::string::npos ||
       provider.command.rfind(".", 0) == 0 ||
       provider.command.rfind("~", 0) == 0) {
@@ -126,11 +138,15 @@ int RunAsrList(Formatter &fmt, const CliContext &ctx) {
                                       _("TIMEOUT")};
   std::vector<std::vector<std::string>> rows;
   for (const auto &provider : config.asr.providers) {
+    std::string model_display = "-";
+    if (IsBuiltinProvider(provider)) {
+      model_display = provider.model.empty() ? _("(not set)") : provider.model;
+    }
     rows.push_back(
         {provider.name,
          provider.type,
          provider.name == config.asr.activeProvider ? _("yes") : _("no"),
-         IsBuiltinProvider(provider) ? provider.model : "-",
+         model_display,
          IsCommandProvider(provider) ? JoinCommand(provider) : "-",
          vinput::str::FmtStr("%d ms", provider.timeoutMs)});
   }
@@ -168,7 +184,7 @@ int RunAsrAdd(const std::string &name, const std::string &type,
           _("Builtin ASR providers do not accept command or env fields."));
       return 1;
     }
-    provider.model = model.empty() ? vinput::asr::kDefaultBuiltinModel : model;
+    provider.model = model;
   } else if (type == vinput::asr::kCommandProviderType) {
     if (!model.empty()) {
       fmt.PrintError(_("Command ASR providers do not accept a model field."));

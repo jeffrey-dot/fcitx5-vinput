@@ -2,6 +2,7 @@
 
 #include "asr_engine.h"
 #include "common/asr_defaults.h"
+#include "common/extension_manager.h"
 #include "common/model_manager.h"
 #include "common/process_utils.h"
 
@@ -140,6 +141,18 @@ public:
     command_.args = provider->args;
     command_.env = provider->env;
     command_.timeout_ms = provider->timeoutMs;
+
+    if (command_.command.find('/') == std::string::npos &&
+        command_.command.rfind(".", 0) != 0 &&
+        command_.command.rfind("~", 0) != 0) {
+      std::string resolve_error;
+      auto extension_path = vinput::extension::ResolveCommandPath(
+          command_.command, vinput::extension::Type::kAsr, &resolve_error);
+      if (extension_path.has_value()) {
+        command_.command = extension_path->string();
+      }
+    }
+
     initialized_ = true;
     return true;
   }

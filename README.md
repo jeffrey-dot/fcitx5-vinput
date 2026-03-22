@@ -168,6 +168,9 @@ Scenes that use LLM must set `--provider`, `--model`, and `--prompt` together.
 vinput llm list                 # List configured providers
 vinput llm add <name> --base-url <url>
 vinput llm remove <name>        # Remove provider
+vinput extension list           # List built-in/user extensions
+vinput extension start <id>     # Start an LLM extension
+vinput extension stop <id>      # Stop an LLM extension
 ```
 
 LLM providers are referenced by scenes; there is no separate active-provider toggle.
@@ -184,6 +187,9 @@ vinput asr use <name>           # Switch active ASR provider
 vinput asr edit <name>          # Edit external provider script
 vinput asr remove <name>        # Remove provider
 ```
+
+Built-in ASR extensions can be referenced directly by script ID in
+command providers, without hardcoding a full path.
 
 </details>
 
@@ -213,11 +219,13 @@ vinput device use <name>        # Set active device
 <summary>Config Helpers</summary>
 
 ```bash
-vinput config get extra.registry_url        # Read a supported config value
 vinput config set extra.hotwords_file <path> # Write a supported config value
 vinput config edit extra                    # Edit core config file
 vinput config edit fcitx                    # Edit Fcitx addon config
 ```
+
+Registry fallback is configured directly in `config.json` with
+`registry.sources`. Sources are tried in order until one succeeds.
 
 </details>
 
@@ -324,16 +332,18 @@ A minimal provider config looks like this:
 {
   "name": "elevenlabs",
   "type": "command",
-  "command": "python3",
-  "args": [
-    "/path/to/extensions/asr/elevenlabs_speech_to_text.py"
-  ],
+  "command": "elevenlabs_speech_to_text",
   "env": {
     "ELEVENLABS_API_KEY": "..."
   },
   "timeout_ms": 60000
 }
 ```
+
+Built-in extensions are installed under
+`/usr/share/fcitx5-vinput/extensions/` by default. User overrides can be
+placed under `~/.config/vinput/extensions/`; user files take precedence over
+built-in extensions with the same script name.
 
 ### LLM Proxy Contract
 
@@ -376,6 +386,10 @@ the structured payload currently consumed by `vinput`.
   ]
 }
 ```
+
+For built-in managed LLM extensions, prefer environment variables over CLI
+arguments for runtime configuration. `vinput extension start/stop` starts the
+script directly and does not inject positional arguments.
 
 Reference implementations:
 

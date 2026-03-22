@@ -167,6 +167,9 @@ vinput scene remove <ID>        # 删除场景
 vinput llm list                 # 列出已配置 provider
 vinput llm add <名称> --base-url <url>
 vinput llm remove <名称>         # 删除 provider
+vinput extension list           # 列出内建/用户扩展
+vinput extension start <id>     # 启动 LLM 扩展
+vinput extension stop <id>      # 停止 LLM 扩展
 ```
 
 LLM provider 由场景引用，不再有单独的“当前 provider”开关。
@@ -183,6 +186,8 @@ vinput asr use <名称>            # 切换当前 ASR provider
 vinput asr edit <名称>           # 编辑外部 provider 脚本
 vinput asr remove <名称>         # 删除 provider
 ```
+
+内建 ASR 扩展可直接用脚本 ID 引用，不必手写完整路径。
 
 </details>
 
@@ -212,11 +217,13 @@ vinput device use <名称>         # 设置当前设备
 <summary>配置辅助</summary>
 
 ```bash
-vinput config get extra.registry_url         # 读取支持的配置项
 vinput config set extra.hotwords_file <路径>  # 写入支持的配置项
 vinput config edit extra                     # 编辑核心配置文件
 vinput config edit fcitx                     # 编辑 Fcitx 插件配置
 ```
+
+高级注册源回退可直接在 `config.json` 里配置 `registry.sources`。
+程序会按顺序依次尝试，直到某个源成功。
 
 </details>
 
@@ -320,16 +327,16 @@ vinput scene use polish
 {
   "name": "elevenlabs",
   "type": "command",
-  "command": "python3",
-  "args": [
-    "/path/to/extensions/asr/elevenlabs_speech_to_text.py"
-  ],
+  "command": "elevenlabs_speech_to_text",
   "env": {
     "ELEVENLABS_API_KEY": "..."
   },
   "timeout_ms": 60000
 }
 ```
+
+内建扩展默认安装到 `/usr/share/fcitx5-vinput/extensions/`。用户自定义扩展放到
+`~/.config/vinput/extensions/` 即可；同名文件会优先覆盖内建扩展。
 
 ### LLM 代理脚本协议
 
@@ -370,6 +377,9 @@ vinput scene use polish
   ]
 }
 ```
+
+对于内建托管的 LLM 扩展，运行时配置建议统一走环境变量，不要依赖 CLI 位置参数。
+`vinput extension start/stop` 直接启动脚本，不会为它注入额外位置参数。
 
 参考实现：
 

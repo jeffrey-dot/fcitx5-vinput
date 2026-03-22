@@ -850,6 +850,10 @@ msgstr "ASR 提供商 '%s' 已添加。"
 msgid "ASR provider '%s' already exists."
 msgstr "ASR 提供商 '%s' 已存在。"
 
+#: src/daemon/main.cpp
+msgid "ASR disabled by command line."
+msgstr "ASR 已通过命令行禁用。"
+
 #: src/cli/command_asr.cpp
 #, c-format
 msgid "ASR provider '%s' does not reference an editable script file."
@@ -921,6 +925,14 @@ msgstr "命令型提供商的命令或可执行文件路径"
 msgid "Environment entry as KEY=VALUE"
 msgstr "以 KEY=VALUE 形式传入环境变量"
 
+#: src/daemon/main.cpp
+msgid "No active ASR provider configured."
+msgstr "未配置当前 ASR 提供商。"
+
+#: src/daemon/main.cpp
+msgid "No builtin ASR model configured."
+msgstr "未配置内置 ASR 模型。"
+
 #: src/cli/command_asr.cpp
 #, c-format
 msgid "Invalid env entry '%s'. Use KEY=VALUE."
@@ -984,3 +996,38 @@ msgstr "不支持的 ASR 提供商类型 '%s'。"
 #, c-format
 msgid "Updated ASR provider script: %s"
 msgstr "已更新 ASR 提供商脚本：%s"
+
+#: src/cli/main.cpp
+msgid "Manage built-in and user extensions"
+msgstr "管理内建和用户扩展"
+
+#: src/cli/main.cpp
+msgid "List available extensions"
+msgstr "列出可用扩展"
+
+#: src/cli/main.cpp
+msgid "Start an LLM extension"
+msgstr "启动一个 LLM 扩展"
+
+#: src/cli/main.cpp
+msgid "Stop an LLM extension"
+msgstr "停止一个 LLM 扩展"
+
+#: src/cli/command_extension.cpp
+#, c-format
+msgid "Extension '%s' started."
+msgstr "扩展 '%s' 已启动。"
+
+#: src/cli/command_extension.cpp
+#, c-format
+msgid "Extension '%s' stopped."
+msgstr "扩展 '%s' 已停止。"
+
+#: src/cli/command_extension.cpp
+#, c-format
+msgid "Log file: %s"
+msgstr "日志文件：%s"
+
+#: src/cli/command_extension.cpp
+msgid "SOURCE"
+msgstr "来源"

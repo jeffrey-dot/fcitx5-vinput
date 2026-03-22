@@ -34,6 +34,7 @@ add_executable(vinput
     command_daemon.cpp
     command_status.cpp
     command_recording.cpp
+    command_extension.cpp
     dbus_client.cpp
     systemd_client.cpp
     ${CMAKE_SOURCE_DIR}/src/common/pipewire_device.cpp
@@ -55,4 +56,14 @@ target_link_libraries(vinput PRIVATE
 
 install(TARGETS vinput
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(PROGRAMS
+    ${CMAKE_SOURCE_DIR}/extensions/asr/elevenlabs_speech_to_text.py
+    DESTINATION ${VINPUT_EXTENSION_DIR}/asr
+)
+
+install(PROGRAMS
+    ${CMAKE_SOURCE_DIR}/extensions/llm/mtranserver_proxy.py
+    DESTINATION ${VINPUT_EXTENSION_DIR}/llm
 )

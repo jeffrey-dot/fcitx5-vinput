@@ -41,6 +41,9 @@ set(VINPUT_DBUS_SERVICE_DIR
 set(VINPUT_RUNTIME_LIBDIR
     "${CMAKE_INSTALL_LIBDIR}/fcitx5-vinput"
     CACHE PATH "Install directory for bundled sherpa-onnx runtime libraries")
+set(VINPUT_EXTENSION_DIR
+    "${CMAKE_INSTALL_DATAROOTDIR}/fcitx5-vinput/extensions"
+    CACHE PATH "Install directory for built-in extension scripts")
 option(VINPUT_BUNDLE_SHERPA_RUNTIME
     "Install bundled sherpa-onnx runtime libraries with vinput-daemon"
     ON)

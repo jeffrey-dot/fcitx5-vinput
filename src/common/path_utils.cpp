@@ -39,4 +39,28 @@ std::filesystem::path CoreConfigPath() {
          "config.json";
 }
 
+std::filesystem::path UserExtensionDir() {
+  const char *xdg = std::getenv("XDG_CONFIG_HOME");
+  if (xdg && xdg[0] != '\0') {
+    return std::filesystem::path(xdg) / "vinput" / "extensions";
+  }
+  const char *home = std::getenv("HOME");
+  if (!home || home[0] == '\0')
+    return {};
+  return std::filesystem::path(home) / ".config" / "vinput" / "extensions";
+}
+
+std::filesystem::path ExtensionRuntimeDir() {
+  const char *xdg_runtime = std::getenv("XDG_RUNTIME_DIR");
+  if (xdg_runtime && xdg_runtime[0] != '\0') {
+    return std::filesystem::path(xdg_runtime) / "vinput" / "extensions";
+  }
+
+  const char *tmpdir = std::getenv("TMPDIR");
+  std::filesystem::path base =
+      (tmpdir && tmpdir[0] != '\0') ? std::filesystem::path(tmpdir)
+                                    : std::filesystem::path("/tmp");
+  return base / "vinput" / "extensions";
+}
+
 } // namespace vinput::path

@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
+# ==vinput-extension==
+# @name MTranServer Proxy
+# @type llm
+# @description OpenAI-compatible proxy for MTranServer
+# @author xifan
+# @version 1.0.0
+# @env MTRAN_URL (optional, default: http://localhost:8989)
+# @env MTRAN_TOKEN (optional)
+# @env MTRAN_PORT (optional, default: 8990)
+# ==/vinput-extension==
 """OpenAI-compatible proxy for MTranServer.
 
 Translates /v1/chat/completions requests into MTranServer /translate calls.
 
-Usage:
-    python3 extensions/llm/mtranserver_proxy.py [--port 8990]
-        [--mtran-url http://localhost:8989] [--mtran-token TOKEN]
+Environment:
+    MTRAN_PORT      Optional port. Defaults to 8990.
+    MTRAN_URL       Optional upstream URL. Defaults to http://localhost:8989.
+    MTRAN_TOKEN     Optional bearer token for the upstream service.
 
 Scene prompt should specify target language, e.g.:
     "translate to en"
@@ -17,6 +28,7 @@ The user message content is the text to translate.
 
 import argparse
 import json
+import os
 import re
 import time
 import uuid
@@ -133,9 +145,13 @@ def main():
     parser = argparse.ArgumentParser(
         description="OpenAI-compatible proxy for MTranServer"
     )
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
-    parser.add_argument("--mtran-url", default=DEFAULT_MTRAN_URL)
-    parser.add_argument("--mtran-token", default="")
+    parser.add_argument(
+        "--port", type=int, default=int(os.getenv("MTRAN_PORT", DEFAULT_PORT))
+    )
+    parser.add_argument(
+        "--mtran-url", default=os.getenv("MTRAN_URL", DEFAULT_MTRAN_URL)
+    )
+    parser.add_argument("--mtran-token", default=os.getenv("MTRAN_TOKEN", ""))
     args = parser.parse_args()
 
     mtran_url = args.mtran_url.rstrip("/")

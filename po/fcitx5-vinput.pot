@@ -383,6 +383,10 @@ msgstr ""
 msgid "List available audio input devices"
 msgstr ""
 
+#: src/cli/main.cpp
+msgid "List available extensions"
+msgstr ""
+
 #: src/cli/main.cpp:89
 msgid "List configured LLM providers"
 msgstr ""
@@ -408,6 +412,11 @@ msgstr ""
 #. ---- device subcommand ----
 #: src/cli/main.cpp:190
 msgid "Manage capture devices"
+msgstr ""
+
+#. ---- extension subcommand ----
+#: src/cli/main.cpp
+msgid "Manage built-in and user extensions"
 msgstr ""
 
 #. ---- hotword subcommand ----
@@ -479,6 +488,14 @@ msgstr ""
 msgid "No hotwords file configured. Use 'hotword set <path>' first."
 msgstr ""
 
+#: src/daemon/main.cpp
+msgid "No active ASR provider configured."
+msgstr ""
+
+#: src/daemon/main.cpp
+msgid "No builtin ASR model configured."
+msgstr ""
+
 #: src/cli/command_model.cpp:104 src/cli/command_model.cpp:161
 msgid ""
 "No registry URL configured. Set with: vinput config set extra.registry_url "
@@ -507,6 +524,10 @@ msgstr ""
 
 #: src/cli/main.cpp:169
 msgid "Overwrite existing config"
+msgstr ""
+
+#: src/daemon/main.cpp
+msgid "ASR disabled by command line."
 msgstr ""
 
 #: src/cli/command_model.cpp:294
@@ -664,12 +685,43 @@ msgstr ""
 msgid "Start the daemon"
 msgstr ""
 
+#: src/cli/main.cpp
+msgid "Start an LLM extension"
+msgstr ""
+
 #: src/cli/main.cpp:154
 msgid "Stop the daemon"
 msgstr ""
 
+#: src/cli/main.cpp
+msgid "Stop an LLM extension"
+msgstr ""
+
 #: src/cli/command_device.cpp:52
 msgid "System Default"
+msgstr ""
+
+#: src/cli/command_extension.cpp
+#, c-format
+msgid "Extension '%s' started."
+msgstr ""
+
+#: src/cli/command_extension.cpp
+#, c-format
+msgid "Extension '%s' stopped."
+msgstr ""
+
+#: src/cli/command_extension.cpp
+#, c-format
+msgid "Log file: %s"
+msgstr ""
+
+#: src/cli/command_extension.cpp
+msgid "SOURCE"
+msgstr ""
+
+#: src/cli/command_extension.cpp src/cli/command_scene.cpp:40
+msgid "ID"
 msgstr ""
 
 #: src/cli/command_model.cpp:84 src/cli/command_model.cpp:144
