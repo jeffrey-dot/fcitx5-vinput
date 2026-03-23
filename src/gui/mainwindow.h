@@ -65,6 +65,7 @@ private slots:
   void onBrowseHotwordsClicked();
 
   // Daemon Management
+  void checkFlatpakPermissions();
   void refreshDaemonStatus();
   void onDaemonStart();
   void onDaemonStop();

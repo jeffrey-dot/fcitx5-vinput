@@ -1,5 +1,6 @@
 #include "common/path_utils.h"
 #include <cstdlib>
+#include <sys/stat.h>
 
 namespace vinput::path {
 
@@ -72,6 +73,11 @@ std::filesystem::path AdaptorRuntimeDir() {
       (tmpdir && tmpdir[0] != '\0') ? std::filesystem::path(tmpdir)
                                     : std::filesystem::path("/tmp");
   return base / "vinput" / "adaptors";
+}
+
+bool isInsideFlatpak() {
+  struct stat st;
+  return stat("/.flatpak-info", &st) == 0;
 }
 
 } // namespace vinput::path
