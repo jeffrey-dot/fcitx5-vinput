@@ -17,7 +17,7 @@ struct ErrorInfo {
   }
 };
 
-constexpr const char *kErrorInfoSignature = "ssss";
+constexpr char kErrorInfoSignature[] = "ssss";
 
 constexpr const char *kErrorCodeUnknown = "unknown";
 constexpr const char *kErrorCodeDaemonStartFailed = "daemon_start_failed";
