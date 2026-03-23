@@ -57,7 +57,7 @@ void autoInstallSystemdServiceInFlatpak() {
     content.replace(
         pos, end - pos,
         "ExecStart=flatpak run --command=/app/addons/Vinput/bin/vinput-daemon org.fcitx.Fcitx5\n"
-        "ExecStop=flatpak enter org.fcitx.Fcitx5 pkill -INT vinput-daemon");
+        "ExecStop=pkill -INT vinput-daemon");
   }
 
   std::error_code ec;
