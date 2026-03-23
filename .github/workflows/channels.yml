@@ -178,7 +178,7 @@ jobs:
     steps:
       - name: Trigger Flatpak repository publish
         env:
-          GH_TOKEN: ${{ secrets.FLATPAK_AUTO_PAT }}
+          GH_TOKEN: ${{ secrets.FLATPAK_AUTO_PAT || secrets.AUR_AUTO_PAT }}
         run: |
           gh workflow run sync-and-publish.yml \
             --repo xifan2333/flatpak-auto \
