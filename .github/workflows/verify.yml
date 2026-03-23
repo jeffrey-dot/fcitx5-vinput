@@ -1,0 +1,60 @@
+name: verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version to verify, for example 1.1.14
+        required: true
+        type: string
+      channel:
+        description: Channel to verify
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - ppa
+          - copr
+          - aur
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ inputs.channel }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  verify-ppa:
+    if: ${{ inputs.channel == 'all' || inputs.channel == 'ppa' }}
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify PPA install
+        run: ./scripts/ci-verify-channel-install.sh ppa-ubuntu24.04 "${{ inputs.version }}"
+
+  verify-copr:
+    if: ${{ inputs.channel == 'all' || inputs.channel == 'copr' }}
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:43
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify COPR install
+        run: ./scripts/ci-verify-channel-install.sh copr-fedora43 "${{ inputs.version }}"
+
+  verify-aur:
+    if: ${{ inputs.channel == 'all' || inputs.channel == 'aur' }}
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify AUR install
+        run: ./scripts/ci-verify-channel-install.sh aur-archlinux "${{ inputs.version }}"
