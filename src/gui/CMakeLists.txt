@@ -33,6 +33,13 @@ add_executable(vinput-gui
     ${VINPUT_GUI_HEADERS}
 )
 
+set(VINPUT_GUI_DESKTOP_FILE
+    "${CMAKE_CURRENT_BINARY_DIR}/vinput-gui.desktop")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/vinput-gui.desktop.in"
+    "${VINPUT_GUI_DESKTOP_FILE}"
+    @ONLY)
+
 set(VINPUT_GUI_TS
     ${CMAKE_SOURCE_DIR}/i18n/vinput-gui_zh_CN.ts
 )
@@ -82,6 +89,10 @@ target_link_libraries(vinput-gui
 
 install(TARGETS vinput-gui
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES ${VINPUT_GUI_DESKTOP_FILE}
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
 )
 
 if(VINPUT_GUI_QM)

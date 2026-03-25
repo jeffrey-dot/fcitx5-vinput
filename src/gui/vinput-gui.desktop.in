@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Vinput GUI
+Comment=Configure fcitx5-vinput settings and devices
+Exec=vinput-gui
+Icon=vinput-gui
+Categories=Utility;
+Terminal=false
