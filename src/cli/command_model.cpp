@@ -6,6 +6,7 @@
 #include "common/core_config.h"
 #include "common/model_manager.h"
 #include "common/model_repository.h"
+#include "common/registry_i18n.h"
 #include "common/string_utils.h"
 #include <filesystem>
 #include <fstream>
@@ -15,7 +16,7 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
-    const auto registry_urls = ResolveRegistryUrls(config);
+    const auto registry_urls = ResolveModelRegistryUrls(config);
     ModelManager mgr(base_dir.string());
     const std::string active_model = ResolvePreferredLocalModel(config);
 
@@ -64,7 +65,7 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
 
     // Remote listing
     if (registry_urls.empty()) {
-        fmt.PrintError(_("No registry sources configured. Edit config.json and set registry.sources."));
+        fmt.PrintError(_("No model registry sources configured. Edit config.json and set registry.models."));
         return 1;
     }
 
@@ -75,6 +76,9 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
         fmt.PrintError(err);
         return 1;
     }
+
+    const auto preferred_locale = vinput::registry::DetectPreferredLocale();
+    const auto i18n_map = vinput::registry::FetchMergedI18nMap(config, preferred_locale);
 
     // Get local model names for comparison
     auto local_models = mgr.ListDetailed(active_model);
@@ -88,28 +92,34 @@ int RunModelList(bool remote, Formatter& fmt, const CliContext& ctx) {
     if (ctx.json_output) {
         nlohmann::json arr = nlohmann::json::array();
         for (const auto& m : remote_models) {
+            const std::string title = vinput::registry::LookupI18n(
+                i18n_map, m.id + ".title", m.id);
+            const std::string description = vinput::registry::LookupI18n(
+                i18n_map, m.id + ".description", "");
             arr.push_back({
-                {"name", m.name},
-                {"display_name", m.display_name},
+                {"id", m.id},
+                {"title", title},
+                {"description", description},
                 {"model_type", m.model_type()},
-                {"language", m.language()},
-                {"size", vinput::str::FormatSize(m.size_bytes())},
-                {"size_bytes", m.size_bytes()},
-                {"status", is_installed(m.name) ? "installed" : "available"},
+                {"language", m.language},
+                {"size", vinput::str::FormatSize(m.size_bytes)},
+                {"size_bytes", m.size_bytes},
+                {"status", is_installed(m.id) ? "installed" : "available"},
                 {"supports_hotwords", m.supports_hotwords()},
-                {"description", m.description}
             });
         }
         fmt.PrintJson(arr);
         return 0;
     }
 
-    std::vector<std::string> headers = {_("NAME"), _("TYPE"), _("LANGUAGE"), _("SIZE"), _("HOTWORDS"), _("STATUS")};
+    std::vector<std::string> headers = {_("ID"), _("TITLE"), _("TYPE"), _("LANGUAGE"), _("SIZE"), _("HOTWORDS"), _("STATUS")};
     std::vector<std::vector<std::string>> rows;
     for (const auto& m : remote_models) {
-        std::string status = is_installed(m.name) ? _("installed") : _("available");
+        const std::string title = vinput::registry::LookupI18n(
+            i18n_map, m.id + ".title", m.id);
+        std::string status = is_installed(m.id) ? _("installed") : _("available");
         std::string hotwords = m.supports_hotwords() ? _("yes") : _("no");
-        rows.push_back({m.name, m.model_type(), m.language(), vinput::str::FormatSize(m.size_bytes()), hotwords, status});
+        rows.push_back({m.id, title, m.model_type(), m.language, vinput::str::FormatSize(m.size_bytes), hotwords, status});
     }
     fmt.PrintTable(headers, rows);
     return 0;
@@ -119,10 +129,10 @@ int RunModelAdd(const std::string& name, Formatter& fmt, const CliContext& ctx) 
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
-    const auto registry_urls = ResolveRegistryUrls(config);
+    const auto registry_urls = ResolveModelRegistryUrls(config);
 
     if (registry_urls.empty()) {
-        fmt.PrintError(_("No registry sources configured. Edit config.json and set registry.sources."));
+        fmt.PrintError(_("No model registry sources configured. Edit config.json and set registry.models."));
         return 1;
     }
 
@@ -138,8 +148,8 @@ int RunModelAdd(const std::string& name, Formatter& fmt, const CliContext& ctx) 
 
     uint64_t total_size = 0;
     for (const auto& m : remote_models) {
-        if (m.name == name) {
-            total_size = m.size_bytes();
+        if (m.id == name) {
+            total_size = m.size_bytes;
             break;
         }
     }

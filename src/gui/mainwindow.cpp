@@ -151,8 +151,9 @@ struct DeviceEntry {
 };
 
 struct ModelEntry {
-  QString name;
-  QString display_name;
+  QString id;
+  QString title;
+  QString description;
   QString model_type;
   QString language;
   QString status;
@@ -293,7 +294,7 @@ bool EditAsrProviderDialog(QWidget *parent, const QString &title,
     QString model_error;
     const QList<ModelEntry> local_models = LoadLocalModelsFromCli(&model_error);
     for (const auto &entry : local_models) {
-      comboModel->addItem(entry.name);
+      comboModel->addItem(entry.id);
     }
     if (!model_error.isEmpty()) {
       comboModel->setToolTip(
@@ -778,10 +779,12 @@ QList<ModelEntry> LoadLocalModelsFromCli(QString *error_out) {
     if (name.isEmpty())
       continue;
     ModelEntry entry;
-    entry.name = name;
+    entry.id = name;
+    entry.title = name;
     entry.model_type = obj.value("model_type").toString();
     entry.language = obj.value("language").toString();
     entry.status = obj.value("status").toString();
+    entry.size = obj.value("size").toString();
     entry.supports_hotwords = obj.value("supports_hotwords").toBool(false);
     models.push_back(entry);
   }
@@ -802,12 +805,16 @@ QList<ModelEntry> LoadRemoteModelsFromCli(QString *error_out) {
     if (!value.isObject())
       continue;
     QJsonObject obj = value.toObject();
-    QString name = obj.value("name").toString();
-    if (name.isEmpty())
+    QString id = obj.value("id").toString();
+    if (id.isEmpty())
       continue;
     ModelEntry entry;
-    entry.name = name;
-    entry.display_name = obj.value("display_name").toString();
+    entry.id = id;
+    entry.title = obj.value("title").toString();
+    if (entry.title.isEmpty()) {
+      entry.title = id;
+    }
+    entry.description = obj.value("description").toString();
     entry.model_type = obj.value("model_type").toString();
     entry.language = obj.value("language").toString();
     entry.status = obj.value("status").toString();
@@ -862,7 +869,7 @@ void MainWindow::setupModelTab() {
 
   auto *remoteLayout = new QHBoxLayout();
   tableRemoteModels = new QTableWidget();
-  SetupTable(tableRemoteModels, {tr("Name"), tr("Display Name"), tr("Type"), tr("Language"), tr("Size"), tr("Hotwords"), tr("Status")});
+  SetupTable(tableRemoteModels, {tr("Title"), tr("Description"), tr("Type"), tr("Language"), tr("Size"), tr("Hotwords"), tr("Status")});
   remoteLayout->addWidget(tableRemoteModels, 1);
 
   btnDownloadModel = new QPushButton(tr("Download Selected"));
@@ -926,7 +933,7 @@ void MainWindow::refreshModelList() {
   for (const auto &m : local_models) {
     int row = tableModels->rowCount();
     tableModels->insertRow(row);
-    tableModels->setItem(row, 0, MakeCell(m.name, m.name));
+    tableModels->setItem(row, 0, MakeCell(m.title, m.id));
     tableModels->setItem(row, 1, MakeCell(m.model_type));
     tableModels->setItem(row, 2, MakeCell(m.language));
     auto *sizeCell = MakeCell(m.size);
@@ -959,8 +966,8 @@ void MainWindow::refreshModelList() {
   for (const auto &m : remote_models) {
     int row = tableRemoteModels->rowCount();
     tableRemoteModels->insertRow(row);
-    tableRemoteModels->setItem(row, 0, MakeCell(m.name, m.name));
-    tableRemoteModels->setItem(row, 1, MakeCell(m.display_name));
+    tableRemoteModels->setItem(row, 0, MakeCell(m.title, m.id));
+    tableRemoteModels->setItem(row, 1, MakeCell(m.description));
     tableRemoteModels->setItem(row, 2, MakeCell(m.model_type));
     tableRemoteModels->setItem(row, 3, MakeCell(m.language));
     auto *remoteSizeCell = MakeCell(m.size);

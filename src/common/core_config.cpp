@@ -273,12 +273,35 @@ void from_json(const json &j, AsrProvider &p) {
 // ---------------------------------------------------------------------------
 
 void to_json(json &j, const RegistrySource &s) {
-  j = json{{"name", s.name}, {"url", s.url}};
+  j = json{{"name", s.name}, {"urls", s.urls}};
 }
 
 void from_json(const json &j, RegistrySource &s) {
   s.name = j.value("name", s.name);
-  s.url = j.value("url", s.url);
+  s.urls.clear();
+  if (j.contains("urls") && j.at("urls").is_array()) {
+    for (const auto &value : j.at("urls")) {
+      if (value.is_string() && !value.get<std::string>().empty()) {
+        s.urls.push_back(value.get<std::string>());
+      }
+    }
+  }
+}
+
+void to_json(json &j, const RegistryI18nSource &s) {
+  j = json{{"locale", s.locale}, {"urls", s.urls}};
+}
+
+void from_json(const json &j, RegistryI18nSource &s) {
+  s.locale = j.value("locale", s.locale);
+  s.urls.clear();
+  if (j.contains("urls") && j.at("urls").is_array()) {
+    for (const auto &value : j.at("urls")) {
+      if (value.is_string() && !value.get<std::string>().empty()) {
+        s.urls.push_back(value.get<std::string>());
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -364,12 +387,31 @@ void from_json(const json &j, CoreConfig::Asr &a) {
 // ---------------------------------------------------------------------------
 
 void to_json(json &j, const CoreConfig::Registry &r) {
-  j = json{{"sources", r.sources}};
+  j = json{{"models", r.models},
+           {"asr_providers", r.asrProviders},
+           {"llm_adaptors", r.llmAdaptors},
+           {"i18n", r.i18n}};
 }
 
 void from_json(const json &j, CoreConfig::Registry &r) {
-  if (j.contains("sources")) {
-    r.sources = j.at("sources").get<std::vector<RegistrySource>>();
+  r.models.clear();
+  r.asrProviders.clear();
+  r.llmAdaptors.clear();
+  r.i18n.clear();
+
+  if (j.contains("models")) {
+    r.models = j.at("models").get<std::vector<RegistrySource>>();
+  }
+  if (j.contains("asr_providers")) {
+    r.asrProviders =
+        j.at("asr_providers").get<std::vector<RegistrySource>>();
+  }
+  if (j.contains("llm_adaptors")) {
+    r.llmAdaptors =
+        j.at("llm_adaptors").get<std::vector<RegistrySource>>();
+  }
+  if (j.contains("i18n")) {
+    r.i18n = j.at("i18n").get<std::vector<RegistryI18nSource>>();
   }
 }
 
@@ -580,31 +622,88 @@ void NormalizeCoreConfig(CoreConfig *config) {
         vinput::path::ExpandUserPath(config->modelBaseDir).string();
   }
 
-  std::set<std::string> seen_registry_names;
-  std::set<std::string> seen_registry_urls;
-  std::vector<RegistrySource> normalized_sources;
-  normalized_sources.reserve(config->registry.sources.size());
-  for (auto source : config->registry.sources) {
-    if (source.url.empty()) {
-      std::cerr << "Ignoring registry source with empty URL\n";
-      continue;
-    }
-    if (source.name.empty()) {
-      source.name = "source-" + std::to_string(normalized_sources.size() + 1);
-    }
-    if (!seen_registry_names.insert(source.name).second) {
-      std::cerr << "Ignoring duplicate registry source '" << source.name
-                << "'\n";
-      continue;
-    }
-    if (!seen_registry_urls.insert(source.url).second) {
-      std::cerr << "Ignoring duplicate registry URL '" << source.url << "'\n";
-      continue;
-    }
-    normalized_sources.push_back(std::move(source));
-  }
+  auto normalize_registry_sources =
+      [](std::vector<RegistrySource> *sources, const char *label_prefix) {
+        if (!sources) {
+          return;
+        }
 
-  config->registry.sources = std::move(normalized_sources);
+        std::set<std::string> seen_source_names;
+        std::vector<RegistrySource> normalized;
+        normalized.reserve(sources->size());
+        for (auto source : *sources) {
+          std::set<std::string> seen_urls;
+          std::vector<std::string> normalized_urls;
+          normalized_urls.reserve(source.urls.size());
+          for (const auto &url : source.urls) {
+            if (url.empty()) {
+              continue;
+            }
+            if (!seen_urls.insert(url).second) {
+              continue;
+            }
+            normalized_urls.push_back(url);
+          }
+          if (normalized_urls.empty()) {
+            std::cerr << "Ignoring registry source with empty URL list\n";
+            continue;
+          }
+          source.urls = std::move(normalized_urls);
+          if (source.name.empty()) {
+            source.name = std::string(label_prefix) + "-" +
+                          std::to_string(normalized.size() + 1);
+          }
+          if (!seen_source_names.insert(source.name).second) {
+            std::cerr << "Ignoring duplicate registry source '" << source.name
+                      << "'\n";
+            continue;
+          }
+          normalized.push_back(std::move(source));
+        }
+        *sources = std::move(normalized);
+      };
+
+  auto normalize_registry_i18n =
+      [](std::vector<RegistryI18nSource> *sources) {
+        if (!sources) {
+          return;
+        }
+
+        std::set<std::string> seen_locales;
+        std::vector<RegistryI18nSource> normalized;
+        normalized.reserve(sources->size());
+        for (auto source : *sources) {
+          std::set<std::string> seen_urls;
+          std::vector<std::string> normalized_urls;
+          normalized_urls.reserve(source.urls.size());
+          for (const auto &url : source.urls) {
+            if (url.empty()) {
+              continue;
+            }
+            if (!seen_urls.insert(url).second) {
+              continue;
+            }
+            normalized_urls.push_back(url);
+          }
+          if (source.locale.empty() || normalized_urls.empty()) {
+            std::cerr << "Ignoring invalid registry i18n source\n";
+            continue;
+          }
+          if (!seen_locales.insert(source.locale).second) {
+            std::cerr << "Ignoring duplicate registry i18n locale '"
+                      << source.locale << "'\n";
+            continue;
+          }
+          source.urls = std::move(normalized_urls);
+          normalized.push_back(std::move(source));
+        }
+        *sources = std::move(normalized);
+      };
+
+  normalize_registry_sources(&config->registry.models, "models");
+  normalize_registry_sources(&config->registry.asrProviders, "asr-providers");
+  normalize_registry_sources(&config->registry.llmAdaptors, "llm-adaptors");
+  normalize_registry_i18n(&config->registry.i18n);
 
   std::set<std::string> seen_adaptor_ids;
   std::vector<LlmAdaptor> normalized_adaptors;
@@ -772,17 +871,95 @@ std::string ResolvePreferredLocalModel(const CoreConfig &config) {
 }
 
 std::vector<std::string> ResolveRegistryUrls(const CoreConfig &config) {
+  return ResolveModelRegistryUrls(config);
+}
+
+std::vector<std::string> ResolveModelRegistryUrls(const CoreConfig &config) {
   std::vector<std::string> urls;
-  urls.reserve(config.registry.sources.size());
+  std::size_t total = 0;
+  for (const auto &source : config.registry.models) {
+    total += source.urls.size();
+  }
+  urls.reserve(total);
   std::set<std::string> seen;
-  for (const auto &source : config.registry.sources) {
-    if (source.url.empty()) {
+  for (const auto &source : config.registry.models) {
+    for (const auto &url : source.urls) {
+      if (url.empty()) {
+        continue;
+      }
+      if (!seen.insert(url).second) {
+        continue;
+      }
+      urls.push_back(url);
+    }
+  }
+  return urls;
+}
+
+std::vector<std::string>
+ResolveAsrProviderRegistryUrls(const CoreConfig &config) {
+  std::vector<std::string> urls;
+  std::size_t total = 0;
+  for (const auto &source : config.registry.asrProviders) {
+    total += source.urls.size();
+  }
+  urls.reserve(total);
+  std::set<std::string> seen;
+  for (const auto &source : config.registry.asrProviders) {
+    for (const auto &url : source.urls) {
+      if (url.empty()) {
+        continue;
+      }
+      if (!seen.insert(url).second) {
+        continue;
+      }
+      urls.push_back(url);
+    }
+  }
+  return urls;
+}
+
+std::vector<std::string>
+ResolveLlmAdaptorRegistryUrls(const CoreConfig &config) {
+  std::vector<std::string> urls;
+  std::size_t total = 0;
+  for (const auto &source : config.registry.llmAdaptors) {
+    total += source.urls.size();
+  }
+  urls.reserve(total);
+  std::set<std::string> seen;
+  for (const auto &source : config.registry.llmAdaptors) {
+    for (const auto &url : source.urls) {
+      if (url.empty()) {
+        continue;
+      }
+      if (!seen.insert(url).second) {
+        continue;
+      }
+      urls.push_back(url);
+    }
+  }
+  return urls;
+}
+
+std::vector<std::string> ResolveRegistryI18nUrls(const CoreConfig &config,
+                                                 const std::string &locale) {
+  std::vector<std::string> urls;
+  std::set<std::string> seen;
+  for (const auto &source : config.registry.i18n) {
+    if (source.locale != locale) {
       continue;
     }
-    if (!seen.insert(source.url).second) {
-      continue;
+    for (const auto &url : source.urls) {
+      if (url.empty()) {
+        continue;
+      }
+      if (!seen.insert(url).second) {
+        continue;
+      }
+      urls.push_back(url);
     }
-    urls.push_back(source.url);
+    break;
   }
   return urls;
 }

@@ -1,19 +1,83 @@
 {
-  "version": 2,
+  "version": 3,
   "capture_device": "default",
   "registry": {
-    "sources": [
+    "models": [
       {
         "name": "github",
-        "url": "https://raw.githubusercontent.com/xifan2333/vinput-models/main/registry.json"
+        "urls": [
+          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/models.json"
+        ]
       },
       {
         "name": "gh-proxy",
-        "url": "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-models/main/registry.json"
+        "urls": [
+          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/models.json"
+        ]
       },
       {
         "name": "ghfast",
-        "url": "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-models/main/registry.json"
+        "urls": [
+          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/models.json"
+        ]
+      }
+    ],
+    "asr_providers": [
+      {
+        "name": "github",
+        "urls": [
+          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/asr-providers.json"
+        ]
+      },
+      {
+        "name": "gh-proxy",
+        "urls": [
+          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/asr-providers.json"
+        ]
+      },
+      {
+        "name": "ghfast",
+        "urls": [
+          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/asr-providers.json"
+        ]
+      }
+    ],
+    "llm_adaptors": [
+      {
+        "name": "github",
+        "urls": [
+          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/llm-adaptors.json"
+        ]
+      },
+      {
+        "name": "gh-proxy",
+        "urls": [
+          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/llm-adaptors.json"
+        ]
+      },
+      {
+        "name": "ghfast",
+        "urls": [
+          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/llm-adaptors.json"
+        ]
+      }
+    ],
+    "i18n": [
+      {
+        "locale": "zh_CN",
+        "urls": [
+          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/zh_CN.json",
+          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/zh_CN.json",
+          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/zh_CN.json"
+        ]
+      },
+      {
+        "locale": "en_US",
+        "urls": [
+          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/en_US.json",
+          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/en_US.json",
+          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/en_US.json"
+        ]
       }
     ]
   },

@@ -116,25 +116,23 @@ std::vector<RemoteModelEntry> FetchRegistryOnce(const std::string &registry_url,
 
   try {
     json j = json::parse(buf.data);
-    if (!j.is_array()) {
-      if (error) *error = "registry JSON is not an array";
+    if (!j.is_object()) {
+      if (error) *error = "registry JSON is not an object";
       return entries;
     }
-    for (const auto &item : j) {
+    if (!j.contains("items") || !j.at("items").is_array()) {
+      if (error) *error = "registry JSON is missing array field 'items'";
+      return entries;
+    }
+    for (const auto &item : j.at("items")) {
       RemoteModelEntry e;
-      e.name = item.value("name", "");
-      e.display_name = item.value("display_name", "");
-      e.description = item.value("description", "");
-      // url: string or array of strings (tried in order as fallback)
-      if (item.contains("url")) {
-        const auto &u = item["url"];
-        if (u.is_string()) {
-          e.urls.push_back(u.get<std::string>());
-        } else if (u.is_array()) {
-          for (const auto &elem : u) {
-            if (elem.is_string() && !elem.get<std::string>().empty()) {
-              e.urls.push_back(elem.get<std::string>());
-            }
+      e.id = item.value("id", "");
+      e.size_bytes = item.value("size_bytes", uint64_t{0});
+      e.language = item.value("language", "");
+      if (item.contains("urls") && item.at("urls").is_array()) {
+        for (const auto &elem : item.at("urls")) {
+          if (elem.is_string() && !elem.get<std::string>().empty()) {
+            e.urls.push_back(elem.get<std::string>());
           }
         }
       }
@@ -142,7 +140,7 @@ std::vector<RemoteModelEntry> FetchRegistryOnce(const std::string &registry_url,
       if (item.contains("vinput_model")) {
         e.vinput_model = item["vinput_model"];
       }
-      if (!e.name.empty() && !e.urls.empty()) {
+      if (!e.id.empty() && !e.urls.empty()) {
         entries.push_back(std::move(e));
       }
     }
@@ -228,7 +226,7 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
   // Find the requested model
   const RemoteModelEntry *found = nullptr;
   for (const auto &e : entries) {
-    if (e.name == model_name) {
+    if (e.id == model_name) {
       found = &e;
       break;
     }

@@ -9,18 +9,16 @@
 #include <nlohmann/json.hpp>
 
 struct RemoteModelEntry {
-  std::string name;
-  std::string display_name;
-  std::string description;
+  std::string id;
   std::vector<std::string> urls; // download URLs (tried in order, fallback)
   std::string sha256;
+  uint64_t size_bytes = 0;
+  std::string language;
   nlohmann::json vinput_model; // pre-built vinput-model.json content
 
   // Convenience accessors reading from vinput_model
   std::string model_type() const { return vinput_model.value("model_type", ""); }
-  std::string language() const { return vinput_model.value("language", ""); }
   bool supports_hotwords() const { return vinput_model.value("supports_hotwords", false); }
-  uint64_t size_bytes() const { return vinput_model.value("size_bytes", uint64_t{0}); }
 };
 
 struct InstallProgress {

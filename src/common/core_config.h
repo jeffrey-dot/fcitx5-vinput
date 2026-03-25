@@ -40,7 +40,12 @@ struct AsrProvider {
 
 struct RegistrySource {
   std::string name;
-  std::string url;
+  std::vector<std::string> urls;
+};
+
+struct RegistryI18nSource {
+  std::string locale;
+  std::vector<std::string> urls;
 };
 
 struct CoreConfig {
@@ -48,7 +53,10 @@ struct CoreConfig {
   std::string captureDevice;
   std::string modelBaseDir;
   struct Registry {
-    std::vector<RegistrySource> sources;
+    std::vector<RegistrySource> models;
+    std::vector<RegistrySource> asrProviders;
+    std::vector<RegistrySource> llmAdaptors;
+    std::vector<RegistryI18nSource> i18n;
   } registry;
 
   std::string defaultLanguage;
@@ -94,6 +102,11 @@ const AsrProvider *ResolvePreferredLocalAsrProvider(const CoreConfig &config);
 std::string ResolveActiveLocalModel(const CoreConfig &config);
 std::string ResolvePreferredLocalModel(const CoreConfig &config);
 std::vector<std::string> ResolveRegistryUrls(const CoreConfig &config);
+std::vector<std::string> ResolveModelRegistryUrls(const CoreConfig &config);
+std::vector<std::string> ResolveAsrProviderRegistryUrls(const CoreConfig &config);
+std::vector<std::string> ResolveLlmAdaptorRegistryUrls(const CoreConfig &config);
+std::vector<std::string> ResolveRegistryI18nUrls(const CoreConfig &config,
+                                                 const std::string &locale);
 bool SetPreferredLocalModel(CoreConfig *config, const std::string &model,
                             std::string *error);
 const vinput::scene::Definition *FindCommandScene(const CoreConfig &config);
