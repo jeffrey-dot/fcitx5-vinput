@@ -36,9 +36,9 @@
 #include <algorithm>
 #include <optional>
 
-#include "common/adaptor_manager.h"
+#include "common/llm/adaptor_manager.h"
 #include "common/config/core_config.h"
-#include "common/llm_defaults.h"
+#include "common/llm/defaults.h"
 #include "common/utils/path_utils.h"
 
 namespace {

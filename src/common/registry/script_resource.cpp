@@ -1,4 +1,4 @@
-#include "common/script_resource.h"
+#include "common/registry/script_resource.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -9,7 +9,7 @@
 #include "common/config/core_config.h"
 #include "common/utils/downloader.h"
 #include "common/utils/path_utils.h"
-#include "common/registry_cache.h"
+#include "common/registry/cache.h"
 
 namespace vinput::script {
 
@@ -114,6 +114,10 @@ bool IsManagedScriptPath(const fs::path &expected, const std::vector<std::string
   return fs::path(args.front()).lexically_normal() == expected.lexically_normal();
 }
 
+CommandAsrProvider *GetCommandAsrProvider(AsrProvider *provider) {
+  return provider ? std::get_if<CommandAsrProvider>(provider) : nullptr;
+}
+
 } // namespace
 
 std::vector<RegistryEntry> FetchRegistry(Kind kind,
@@ -196,7 +200,7 @@ bool MaterializeAsrProvider(CoreConfig *config, const RegistryEntry &entry,
 
   auto it = std::find_if(config->asr.providers.begin(), config->asr.providers.end(),
                          [&entry](const AsrProvider &provider) {
-                           return provider.name == entry.id;
+                           return AsrProviderId(provider) == entry.id;
                          });
   const fs::path managed_path = DefaultLocalScriptPath(Kind::kAsrProvider, entry.id);
 
@@ -209,23 +213,20 @@ bool MaterializeAsrProvider(CoreConfig *config, const RegistryEntry &entry,
     FillDefaultEnvMap(entry.envs, &provider.env);
     config->asr.providers.push_back(std::move(provider));
   } else {
-    if (!IsManagedScriptPath(managed_path, std::visit([](const AsrProviderBase &b) -> const std::vector<std::string> * {
-      if (auto *cmd = dynamic_cast<const CommandAsrProvider *>(&b)) return &cmd->args;
-      return nullptr;
-    }, *it))) {
+    auto *command_provider = GetCommandAsrProvider(&(*it));
+    if (!command_provider ||
+        !IsManagedScriptPath(managed_path, command_provider->args)) {
       if (error) {
         *error = "refusing to overwrite user-defined ASR provider: " + entry.id;
       }
       return false;
     }
-    it->type = vinput::asr::kCommandProviderType;
-    it->model.clear();
-    it->command = entry.command;
-    it->args = {script_path.string()};
-    if (it->timeoutMs <= 0) {
-      it->timeoutMs = 60000;
+    command_provider->command = entry.command;
+    command_provider->args = {script_path.string()};
+    if (command_provider->timeoutMs <= 0) {
+      command_provider->timeoutMs = 60000;
     }
-    FillDefaultEnvMap(entry.envs, &it->env);
+    FillDefaultEnvMap(entry.envs, &command_provider->env);
   }
 
   if (error) {

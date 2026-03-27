@@ -5,7 +5,7 @@
 #include "common/i18n.h"
 #include "common/utils/file_utils.h"
 #include "common/utils/path_utils.h"
-#include "common/postprocess_scene.h"
+#include "common/scene/postprocess_scene.h"
 
 #include <dbus_public.h>
 #include <fcitx-utils/event.h>

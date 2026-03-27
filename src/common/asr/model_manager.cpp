@@ -1,4 +1,4 @@
-#include "common/model_manager.h"
+#include "common/asr/model_manager.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -140,13 +140,13 @@ fs::path ModelManager::NormalizeBaseDir(const std::string &raw_path) {
 }
 
 ModelManager::ModelManager(const std::string &base_dir,
-                           const std::string &model_name) {
+                           const std::string &model_id) {
   base_dir_ = NormalizeBaseDir(base_dir).string();
-  model_name_ = model_name;
+  model_id_ = model_id;
 }
 
 bool ModelManager::EnsureModels(std::string *error) {
-  auto dir = fs::path(base_dir_) / model_name_;
+  auto dir = fs::path(base_dir_) / model_id_;
   auto json_path = dir / "vinput-model.json";
 
   if (!fs::exists(json_path)) {
@@ -164,7 +164,7 @@ bool ModelManager::EnsureModels(std::string *error) {
         *error = std::move(parse_error);
       } else {
         *error = "'vinput-model.json' is missing model_type for model '" +
-                 model_name_ + "'";
+                 model_id_ + "'";
       }
     }
     return false;
@@ -181,14 +181,14 @@ bool ModelManager::EnsureModels(std::string *error) {
 
   if (!HasTokens(info)) {
     if (error) {
-      *error = "tokens file not found for model '" + model_name_ + "'";
+      *error = "tokens file not found for model '" + model_id_ + "'";
     }
     return false;
   }
 
   if (!HasModelFiles(info)) {
     if (error) {
-      *error = "no model files found for model '" + model_name_ + "'";
+      *error = "no model files found for model '" + model_id_ + "'";
     }
     return false;
   }
@@ -197,7 +197,7 @@ bool ModelManager::EnsureModels(std::string *error) {
 }
 
 ModelInfo ModelManager::GetModelInfo(std::string *error) const {
-  auto dir = fs::path(base_dir_) / model_name_;
+  auto dir = fs::path(base_dir_) / model_id_;
   auto json_path = dir / "vinput-model.json";
 
   if (!fs::exists(json_path)) {
@@ -221,9 +221,9 @@ std::vector<std::string> ModelManager::ListModels() const {
       continue;
     }
 
-    const auto model_name = entry.path().filename().string();
-    if (IsValidModelDir(model_name)) {
-      models.push_back(model_name);
+    const auto model_id = entry.path().filename().string();
+    if (IsValidModelDir(model_id)) {
+      models.push_back(model_id);
     }
   }
 
@@ -231,10 +231,10 @@ std::vector<std::string> ModelManager::ListModels() const {
   return models;
 }
 
-std::string ModelManager::GetModelName() const { return model_name_; }
+std::string ModelManager::GetModelId() const { return model_id_; }
 
-bool ModelManager::IsValidModelDir(const std::string &model_name) const {
-  const auto dir = fs::path(base_dir_) / model_name;
+bool ModelManager::IsValidModelDir(const std::string &model_id) const {
+  const auto dir = fs::path(base_dir_) / model_id;
   const auto json_path = dir / "vinput-model.json";
   return fs::exists(json_path) && fs::is_regular_file(json_path);
 }
@@ -252,11 +252,11 @@ ModelManager::ListDetailed(const std::string &active_model) const {
       continue;
     }
 
-    const auto name = entry.path().filename().string();
+    const auto model_id = entry.path().filename().string();
     ModelSummary s;
-    s.name = name;
+    s.id = model_id;
 
-    if (!IsValidModelDir(name)) {
+    if (!IsValidModelDir(model_id)) {
       s.state = ModelState::Broken;
       summaries.push_back(std::move(s));
       continue;
@@ -278,20 +278,21 @@ ModelManager::ListDetailed(const std::string &active_model) const {
       continue;
     }
 
-    s.state = (name == active_model) ? ModelState::Active : ModelState::Installed;
+    s.state =
+        (model_id == active_model) ? ModelState::Active : ModelState::Installed;
     summaries.push_back(std::move(s));
   }
 
   std::sort(summaries.begin(), summaries.end(),
             [](const ModelSummary &a, const ModelSummary &b) {
-              return a.name < b.name;
+              return a.id < b.id;
             });
   return summaries;
 }
 
-bool ModelManager::Validate(const std::string &model_name,
+bool ModelManager::Validate(const std::string &model_id,
                             std::string *error) const {
-  const auto dir = fs::path(base_dir_) / model_name;
+  const auto dir = fs::path(base_dir_) / model_id;
 
   if (!fs::exists(dir) || !fs::is_directory(dir)) {
     if (error) *error = "model directory does not exist: " + dir.string();
@@ -345,14 +346,14 @@ bool ModelManager::Validate(const std::string &model_name,
   return true;
 }
 
-bool ModelManager::Remove(const std::string &model_name,
+bool ModelManager::Remove(const std::string &model_id,
                           std::string *error) const {
-  const auto dir = fs::weakly_canonical(fs::path(base_dir_) / model_name);
+  const auto dir = fs::weakly_canonical(fs::path(base_dir_) / model_id);
   const auto base = fs::weakly_canonical(fs::path(base_dir_));
 
   // Prevent path traversal: dir must be a direct child of base_dir_
   if (dir.parent_path() != base) {
-    if (error) *error = "invalid model name: " + model_name;
+    if (error) *error = "invalid model id: " + model_id;
     return false;
   }
 

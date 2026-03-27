@@ -9,7 +9,7 @@
 #include "cli/utils/editor_utils.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
-#include "common/model_manager.h"
+#include "common/asr/model_manager.h"
 #include "common/utils/string_utils.h"
 
 namespace {
@@ -161,7 +161,7 @@ int RunAsrConfigListModels(Formatter &fmt, const CliContext &ctx) {
         status = "broken";
       }
       arr.push_back({
-          {"id", model.name},
+          {"id", model.id},
           {"model_type", model.model_type},
           {"language", model.language},
           {"supports_hotwords", model.supports_hotwords},
@@ -184,7 +184,7 @@ int RunAsrConfigListModels(Formatter &fmt, const CliContext &ctx) {
     } else if (model.state == ModelState::Broken) {
       status = std::string("[!] ") + _("Broken");
     }
-    rows.push_back({model.name, model.model_type, model.language,
+    rows.push_back({model.id, model.model_type, model.language,
                     vinput::str::FormatSize(model.size_bytes),
                     model.supports_hotwords ? _("yes") : _("no"), status});
   }

@@ -1,4 +1,4 @@
-#include "common/postprocess_scene.h"
+#include "common/scene/postprocess_scene.h"
 
 #include <string>
 #include <string_view>

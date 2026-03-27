@@ -2,7 +2,7 @@
 #include "cli/utils/formatter.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
-#include "common/postprocess_scene.h"
+#include "common/scene/postprocess_scene.h"
 
 inline bool SaveConfigOrFail(const CoreConfig& config, Formatter& fmt) {
     if (!SaveCoreConfig(config)) {

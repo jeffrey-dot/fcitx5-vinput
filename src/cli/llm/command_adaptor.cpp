@@ -1,13 +1,13 @@
-#include "cli/command_adaptor.h"
+#include "cli/llm/command_adaptor.h"
 
 #include <nlohmann/json.hpp>
 
 #include "cli/runtime/dbus_client.h"
-#include "common/adaptor_manager.h"
+#include "common/llm/adaptor_manager.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
-#include "common/registry_i18n.h"
-#include "common/script_resource.h"
+#include "common/registry/i18n.h"
+#include "common/registry/script_resource.h"
 #include "common/utils/string_utils.h"
 
 namespace {

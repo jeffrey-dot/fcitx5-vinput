@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/config/core_config.h"
-#include "common/postprocess_scene.h"
-#include "common/recognition_result.h"
+#include "common/scene/postprocess_scene.h"
+#include "common/asr/recognition_result.h"
 
 #include <string>
 

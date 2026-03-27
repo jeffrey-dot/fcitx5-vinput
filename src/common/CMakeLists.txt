@@ -7,7 +7,7 @@ set(VINPUT_CONFIG_SOURCES
     config/core_config_json.cpp
     config/config_router.cpp
     config/vinput_config.cpp
-    postprocess_scene.cpp
+    scene/postprocess_scene.cpp
     i18n.cpp
     utils/path_utils.cpp
     utils/file_utils.cpp
@@ -20,12 +20,13 @@ add_library(vinput-config STATIC
 add_library(vinput-common STATIC
     error_info.cpp
     ${VINPUT_CONFIG_SOURCES}
-    recognition_result.cpp
-    model_manager.cpp
-    model_repository.cpp
-    registry_cache.cpp
-    registry_i18n.cpp
-    adaptor_manager.cpp
+    asr/recognition_result.cpp
+    asr/model_manager.cpp
+    registry/model_repository.cpp
+    registry/cache.cpp
+    registry/i18n.cpp
+    registry/script_resource.cpp
+    llm/adaptor_manager.cpp
     utils/download_progress.cpp
     utils/downloader.cpp
     utils/process_utils.cpp

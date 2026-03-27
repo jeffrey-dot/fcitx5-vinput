@@ -1,4 +1,4 @@
-#include "cli/command_asr.h"
+#include "cli/asr/command_asr.h"
 
 #include "cli/utils/cli_helpers.h"
 #include "cli/utils/editor_utils.h"
@@ -6,8 +6,8 @@
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/utils/path_utils.h"
-#include "common/registry_i18n.h"
-#include "common/script_resource.h"
+#include "common/registry/i18n.h"
+#include "common/registry/script_resource.h"
 #include "common/utils/string_utils.h"
 
 #include <algorithm>

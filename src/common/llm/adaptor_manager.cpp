@@ -1,4 +1,4 @@
-#include "common/adaptor_manager.h"
+#include "common/llm/adaptor_manager.h"
 
 #include <cerrno>
 #include <csignal>

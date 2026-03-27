@@ -2,7 +2,7 @@
 
 #include "asr_engine.h"
 #include "common/i18n.h"
-#include "common/model_manager.h"
+#include "common/asr/model_manager.h"
 #include "common/utils/process_utils.h"
 #include "common/utils/string_utils.h"
 

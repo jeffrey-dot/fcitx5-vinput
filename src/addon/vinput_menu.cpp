@@ -1,7 +1,7 @@
 #include "vinput.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
-#include "common/postprocess_scene.h"
+#include "common/scene/postprocess_scene.h"
 
 #include <fcitx/candidatelist.h>
 #include <fcitx/inputcontext.h>

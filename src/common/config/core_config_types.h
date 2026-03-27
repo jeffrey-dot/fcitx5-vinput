@@ -5,7 +5,7 @@
 #include <variant>
 #include <vector>
 
-#include "common/postprocess_scene.h"
+#include "common/scene/postprocess_scene.h"
 
 namespace vinput::asr {
 

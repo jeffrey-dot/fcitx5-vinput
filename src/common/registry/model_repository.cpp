@@ -1,4 +1,4 @@
-#include "common/model_repository.h"
+#include "common/registry/model_repository.h"
 
 #include <archive.h>
 #include <archive_entry.h>
@@ -15,7 +15,7 @@
 
 #include "common/utils/downloader.h"
 #include "common/utils/file_utils.h"
-#include "common/registry_cache.h"
+#include "common/registry/cache.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -125,15 +125,15 @@ std::vector<RemoteModelEntry> ModelRepository::FetchRegistry(
 }
 
 bool ModelRepository::InstallModel(const std::string &registry_url,
-                                   const std::string &model_name,
+                                   const std::string &model_id,
                                    ProgressCallback progress_cb,
                                    std::string *error) const {
-  return InstallModel(std::vector<std::string>{registry_url}, model_name,
+  return InstallModel(std::vector<std::string>{registry_url}, model_id,
                       std::move(progress_cb), error, nullptr);
 }
 
 bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls,
-                                   const std::string &model_name,
+                                   const std::string &model_id,
                                    ProgressCallback progress_cb,
                                    std::string *error,
                                    std::string *resolved_registry_url) const {
@@ -149,13 +149,13 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
   // Find the requested model
   const RemoteModelEntry *found = nullptr;
   for (const auto &e : entries) {
-    if (e.id == model_name) {
+    if (e.id == model_id) {
       found = &e;
       break;
     }
   }
   if (!found) {
-    if (error) *error = "model not found in registry: " + model_name;
+    if (error) *error = "model not found in registry: " + model_id;
     return false;
   }
 
@@ -180,7 +180,7 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
   std::error_code ec;
 
   // Determine archive filename from first URL
-  std::string archive_name = model_name + ".tar.gz";
+  std::string archive_name = model_id + ".tar.gz";
   {
     auto pos = found->urls[0].rfind('/');
     if (pos != std::string::npos && pos + 1 < found->urls[0].size()) {
@@ -260,6 +260,11 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
   // Write vinput-model.json if provided
   if (!found->vinput_model.is_null() && !found->vinput_model.empty()) {
     const fs::path json_path = extracted_dir / "vinput-model.json";
+    if (!found->vinput_model.is_object()) {
+      fs::remove_all(tmp_dir, ec);
+      if (error) *error = "registry field 'vinput_model' must be a JSON object";
+      return false;
+    }
     std::string json_content = found->vinput_model.dump(2) + "\n";
     std::string write_err;
     if (!vinput::file::AtomicWriteTextFile(json_path, json_content, &write_err)) {
@@ -271,7 +276,7 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
 
   // Replace the destination by rename so the old model stays intact until
   // the new one is fully extracted and ready.
-  const fs::path dest_dir = base_dir_ / model_name;
+  const fs::path dest_dir = base_dir_ / model_id;
   const fs::path backup_dir = tmp_dir / "previous-install";
   std::error_code exists_ec;
   const bool had_existing = fs::exists(dest_dir, exists_ec);

@@ -42,10 +42,10 @@ public:
 
   // Download and install a model
   bool InstallModel(const std::string &registry_url,
-                    const std::string &model_name, ProgressCallback progress_cb,
+                    const std::string &model_id, ProgressCallback progress_cb,
                     std::string *error) const;
   bool InstallModel(const std::vector<std::string> &registry_urls,
-                    const std::string &model_name, ProgressCallback progress_cb,
+                    const std::string &model_id, ProgressCallback progress_cb,
                     std::string *error,
                     std::string *resolved_registry_url = nullptr) const;
 

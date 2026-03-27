@@ -2,7 +2,7 @@
 #include "common/dbus_interface.h"
 #include "common/error_info.h"
 #include "common/i18n.h"
-#include "common/recognition_result.h"
+#include "common/asr/recognition_result.h"
 #include "common/utils/path_utils.h"
 #include "common/utils/path_utils.h"
 #include "common/utils/string_utils.h"

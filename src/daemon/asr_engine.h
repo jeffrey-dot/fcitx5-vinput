@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/model_manager.h"
+#include "common/asr/model_manager.h"
 #include "vad_trimmer.h"
 
 #include <cstddef>

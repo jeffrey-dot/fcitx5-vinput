@@ -36,7 +36,7 @@ struct ModelInfo {
 enum class ModelState { Installed, Active, Broken };
 
 struct ModelSummary {
-  std::string name;
+  std::string id;
   ModelState state;
   std::string model_type;
   std::string language;
@@ -47,25 +47,25 @@ struct ModelSummary {
 class ModelManager {
 public:
   explicit ModelManager(const std::string &base_dir = "",
-                        const std::string &model_name = "");
+                        const std::string &model_id = "");
 
   bool EnsureModels(std::string *error = nullptr);
   ModelInfo GetModelInfo(std::string *error = nullptr) const;
   std::vector<std::string> ListModels() const;
   std::string GetBaseDir() const;
-  std::string GetModelName() const;
+  std::string GetModelId() const;
 
   // List all local models with their states
   std::vector<ModelSummary> ListDetailed(const std::string &active_model) const;
   // Validate model directory integrity
-  bool Validate(const std::string &model_name, std::string *error) const;
+  bool Validate(const std::string &model_id, std::string *error) const;
   // Remove a model directory
-  bool Remove(const std::string &model_name, std::string *error) const;
+  bool Remove(const std::string &model_id, std::string *error) const;
   // Normalize base_dir (expand ~)
   static std::filesystem::path NormalizeBaseDir(const std::string &raw_path);
 
 private:
-  bool IsValidModelDir(const std::string &model_name) const;
+  bool IsValidModelDir(const std::string &model_id) const;
   std::string base_dir_;
-  std::string model_name_;
+  std::string model_id_;
 };

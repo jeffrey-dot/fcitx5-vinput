@@ -1,11 +1,11 @@
-#include "cli/command_model.h"
+#include "cli/asr/command_model.h"
 #include "cli/runtime/systemd_client.h"
 #include "cli/utils/cli_helpers.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
-#include "common/model_manager.h"
-#include "common/model_repository.h"
-#include "common/registry_i18n.h"
+#include "common/asr/model_manager.h"
+#include "common/registry/model_repository.h"
+#include "common/registry/i18n.h"
 #include "common/utils/download_progress.h"
 #include "common/utils/string_utils.h"
 
@@ -34,7 +34,7 @@ int RunModelList(bool available, Formatter& fmt, const CliContext& ctx) {
                 else state_str = "installed";
                 uint64_t size = m.size_bytes;
                 arr.push_back({
-                    {"name", m.name},
+                    {"id", m.id},
                     {"model_type", m.model_type},
                     {"language", m.language},
                     {"status", state_str},
@@ -59,7 +59,7 @@ int RunModelList(bool available, Formatter& fmt, const CliContext& ctx) {
                 status_str = std::string("[ ] ") + _("Installed");
             }
             std::string hotwords = m.supports_hotwords ? _("yes") : _("no");
-            rows.push_back({m.name, m.model_type, m.language, vinput::str::FormatSize(m.size_bytes), hotwords, status_str});
+            rows.push_back({m.id, m.model_type, m.language, vinput::str::FormatSize(m.size_bytes), hotwords, status_str});
         }
         fmt.PrintTable(headers, rows);
         return 0;
@@ -84,9 +84,9 @@ int RunModelList(bool available, Formatter& fmt, const CliContext& ctx) {
 
     // Get local model names for comparison
     auto local_models = mgr.ListDetailed(active_model);
-    auto is_installed = [&](const std::string& name) {
+    auto is_installed = [&](const std::string& id) {
         for (const auto& lm : local_models) {
-            if (lm.name == name) return true;
+            if (lm.id == id) return true;
         }
         return false;
     };
@@ -127,7 +127,7 @@ int RunModelList(bool available, Formatter& fmt, const CliContext& ctx) {
     return 0;
 }
 
-int RunModelInstall(const std::string& name, Formatter& fmt, const CliContext& ctx) {
+int RunModelInstall(const std::string& id, Formatter& fmt, const CliContext& ctx) {
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
@@ -150,18 +150,18 @@ int RunModelInstall(const std::string& name, Formatter& fmt, const CliContext& c
 
     uint64_t total_size = 0;
     for (const auto& m : remote_models) {
-        if (m.id == name) {
+        if (m.id == id) {
             total_size = m.size_bytes;
             break;
         }
     }
 
     char label_buf[256];
-    snprintf(label_buf, sizeof(label_buf), _("Downloading %s..."), name.c_str());
+    snprintf(label_buf, sizeof(label_buf), _("Downloading %s..."), id.c_str());
     ProgressBar bar(label_buf, total_size, ctx.is_tty);
 
     bool install_ok = repo.InstallModel(
-        registry_urls, name,
+        registry_urls, id,
         [&](const InstallProgress& p) {
             bar.Update(p.downloaded_bytes, p.speed_bps);
         },
@@ -175,25 +175,25 @@ int RunModelInstall(const std::string& name, Formatter& fmt, const CliContext& c
     }
 
     char success_buf[256];
-    snprintf(success_buf, sizeof(success_buf), _("Model '%s' installed successfully."), name.c_str());
+    snprintf(success_buf, sizeof(success_buf), _("Model '%s' installed successfully."), id.c_str());
     fmt.PrintSuccess(success_buf);
-    fmt.PrintInfo(vinput::str::FmtStr(_("Run `vinput model use %s` to activate"), name));
+    fmt.PrintInfo(vinput::str::FmtStr(_("Run `vinput model use %s` to activate"), id));
     return 0;
 }
 
-int RunModelUse(const std::string& name, Formatter& fmt, const CliContext& /*ctx*/) {
+int RunModelUse(const std::string& id, Formatter& fmt, const CliContext& /*ctx*/) {
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
 
     ModelManager mgr(base_dir.string());
     std::string err;
-    if (!mgr.Validate(name, &err)) {
-        fmt.PrintError(vinput::str::FmtStr(_("Model '%s' is not valid: %s"), name, err));
+    if (!mgr.Validate(id, &err)) {
+        fmt.PrintError(vinput::str::FmtStr(_("Model '%s' is not valid: %s"), id, err));
         return 1;
     }
 
-    if (!SetPreferredLocalModel(&config, name, &err)) {
+    if (!SetPreferredLocalModel(&config, id, &err)) {
         fmt.PrintError(err);
         return 1;
     }
@@ -203,46 +203,46 @@ int RunModelUse(const std::string& name, Formatter& fmt, const CliContext& /*ctx
     if (restart_result != 0) {
         fmt.PrintWarning(vinput::str::FmtStr(
             _("Active model set to '%s', but daemon restart failed (exit code: %d)."),
-            name, restart_result));
+            id, restart_result));
         fmt.PrintInfo(_("Restart the daemon manually to apply the new model."));
         return 1;
     }
 
-    fmt.PrintSuccess(vinput::str::FmtStr(_("Active model set to '%s'. Daemon restarted."), name));
+    fmt.PrintSuccess(vinput::str::FmtStr(_("Active model set to '%s'. Daemon restarted."), id));
     return 0;
 }
 
-int RunModelRemove(const std::string& name, bool force, Formatter& fmt, const CliContext& /*ctx*/) {
+int RunModelRemove(const std::string& id, bool force, Formatter& fmt, const CliContext& /*ctx*/) {
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
     const std::string active_model = ResolvePreferredLocalModel(config);
 
-    if (name == active_model && !force) {
-        fmt.PrintError(vinput::str::FmtStr(_("Cannot remove active model '%s'. Use --force to override."), name));
+    if (id == active_model && !force) {
+        fmt.PrintError(vinput::str::FmtStr(_("Cannot remove active model '%s'. Use --force to override."), id));
         return 1;
     }
 
     ModelManager mgr(base_dir.string());
     std::string err;
-    if (!mgr.Remove(name, &err)) {
+    if (!mgr.Remove(id, &err)) {
         fmt.PrintError(err);
         return 1;
     }
 
-    fmt.PrintSuccess(vinput::str::FmtStr(_("Model '%s' removed."), name));
+    fmt.PrintSuccess(vinput::str::FmtStr(_("Model '%s' removed."), id));
     return 0;
 }
 
-int RunModelInfo(const std::string& name, Formatter& fmt, const CliContext& ctx) {
+int RunModelInfo(const std::string& id, Formatter& fmt, const CliContext& ctx) {
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
-    auto model_dir = base_dir / name;
+    auto model_dir = base_dir / id;
     auto json_path = model_dir / "vinput-model.json";
 
     if (!std::filesystem::exists(json_path)) {
-        fmt.PrintError(vinput::str::FmtStr(_("Model '%s' not found at: %s"), name, json_path.string()));
+        fmt.PrintError(vinput::str::FmtStr(_("Model '%s' not found at: %s"), id, json_path.string()));
         return 1;
     }
 
@@ -265,7 +265,7 @@ int RunModelInfo(const std::string& name, Formatter& fmt, const CliContext& ctx)
 
     if (ctx.json_output) {
         nlohmann::json out = j;
-        out["name"] = name;
+        out["id"] = id;
         out["size_bytes"] = size;
         out["size"] = vinput::str::FormatSize(size);
         out["path"] = model_dir.string();
@@ -273,7 +273,7 @@ int RunModelInfo(const std::string& name, Formatter& fmt, const CliContext& ctx)
         return 0;
     }
 
-    fmt.PrintKeyValue(_("Name"), name);
+    fmt.PrintKeyValue(_("ID"), id);
     fmt.PrintKeyValue(_("Path"), model_dir.string());
     fmt.PrintKeyValue(_("Size"), vinput::str::FormatSize(size));
 

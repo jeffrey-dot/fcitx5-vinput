@@ -1,6 +1,6 @@
 #include "post_processor.h"
 
-#include "common/llm_defaults.h"
+#include "common/llm/defaults.h"
 
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>

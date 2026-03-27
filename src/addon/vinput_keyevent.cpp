@@ -2,7 +2,7 @@
 #include "common/config/core_config.h"
 #include "common/dbus_interface.h"
 #include "common/i18n.h"
-#include "common/postprocess_scene.h"
+#include "common/scene/postprocess_scene.h"
 
 #include "clipboard_public.h"
 #include <fcitx-utils/key.h>

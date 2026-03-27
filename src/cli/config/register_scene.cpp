@@ -5,7 +5,7 @@
 #include "cli/config/action.h"
 #include "cli/config/scene_actions.h"
 #include "common/i18n.h"
-#include "common/postprocess_scene.h"
+#include "common/scene/postprocess_scene.h"
 
 namespace vinput::cli::config {
 

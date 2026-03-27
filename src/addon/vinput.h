@@ -13,8 +13,8 @@
 #include <string>
 #include <vector>
 
-#include "common/postprocess_scene.h"
-#include "common/recognition_result.h"
+#include "common/scene/postprocess_scene.h"
+#include "common/asr/recognition_result.h"
 #include "common/config/vinput_config.h"
 #include "common/error_info.h"
 
