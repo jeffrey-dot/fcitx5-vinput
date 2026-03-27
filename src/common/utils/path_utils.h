@@ -17,7 +17,7 @@ std::filesystem::path RegistryCacheDir();
 bool IsInsideFlatpak();
 std::filesystem::path FlatpakInfoPath();
 std::filesystem::path UserSystemdUnitDir();
-std::filesystem::path UserAsrProviderDir();
-std::filesystem::path UserLlmAdaptorDir();
+std::filesystem::path ManagedAsrProviderDir();
+std::filesystem::path ManagedLlmAdaptorDir();
 std::filesystem::path AdaptorRuntimeDir();
 } // namespace vinput::path

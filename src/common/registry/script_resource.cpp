@@ -155,9 +155,10 @@ std::vector<RegistryEntry> FetchRegistry(Kind kind,
 }
 
 std::filesystem::path DefaultLocalScriptPath(Kind kind, std::string_view id) {
-  const fs::path base = kind == Kind::kAsrProvider ? vinput::path::UserAsrProviderDir()
-                                                   : vinput::path::UserLlmAdaptorDir();
-  return base / (std::string(id) + ".py");
+  const fs::path base = kind == Kind::kAsrProvider
+                            ? vinput::path::ManagedAsrProviderDir()
+                            : vinput::path::ManagedLlmAdaptorDir();
+  return base / std::string(id);
 }
 
 bool DownloadScript(const RegistryEntry &entry, Kind kind,

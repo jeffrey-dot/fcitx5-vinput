@@ -27,6 +27,46 @@ std::filesystem::path UserSystemdUnitPath(std::string_view unit_name) {
   return vinput::path::UserSystemdUnitDir() / std::filesystem::path(unit_name);
 }
 
+std::filesystem::path XdgConfigHome() {
+  const char *xdg = std::getenv("XDG_CONFIG_HOME");
+  if (xdg && xdg[0] != '\0') {
+    return std::filesystem::path(xdg);
+  }
+  const char *home = std::getenv("HOME");
+  if (!home || home[0] == '\0') {
+    return {};
+  }
+  return std::filesystem::path(home) / ".config";
+}
+
+std::filesystem::path XdgDataHome() {
+  const char *xdg = std::getenv("XDG_DATA_HOME");
+  if (xdg && xdg[0] != '\0') {
+    return std::filesystem::path(xdg);
+  }
+  const char *home = std::getenv("HOME");
+  if (!home || home[0] == '\0') {
+    return {};
+  }
+  return std::filesystem::path(home) / ".local" / "share";
+}
+
+std::filesystem::path XdgCacheHome() {
+  const char *xdg = std::getenv("XDG_CACHE_HOME");
+  if (xdg && xdg[0] != '\0') {
+    return std::filesystem::path(xdg);
+  }
+  const char *home = std::getenv("HOME");
+  if (!home || home[0] == '\0') {
+    return {};
+  }
+  return std::filesystem::path(home) / ".cache";
+}
+
+std::filesystem::path VinputConfigDir() { return XdgConfigHome() / "vinput"; }
+std::filesystem::path VinputDataDir() { return XdgDataHome() / "vinput"; }
+std::filesystem::path VinputCacheDir() { return XdgCacheHome() / "vinput"; }
+
 } // namespace
 
 std::string_view DaemonServiceUnitName() { return kDaemonServiceUnitName; }
@@ -71,27 +111,11 @@ std::filesystem::path ExpandUserPath(std::string_view path) {
 }
 
 std::filesystem::path DefaultModelBaseDir() {
-  const char *xdg = std::getenv("XDG_DATA_HOME");
-  if (xdg && xdg[0] != '\0') {
-    return std::filesystem::path(xdg) / "vinput" / "models";
-  }
-  const char *home = std::getenv("HOME");
-  if (!home || home[0] == '\0')
-    return {};
-  return std::filesystem::path(home) / ".local" / "share" /
-         "vinput" / "models";
+  return VinputDataDir() / "models";
 }
 
 std::filesystem::path CoreConfigPath() {
-  const char *xdg = std::getenv("XDG_CONFIG_HOME");
-  if (xdg && xdg[0] != '\0') {
-    return std::filesystem::path(xdg) / "vinput" / "config.json";
-  }
-  const char *home = std::getenv("HOME");
-  if (!home || home[0] == '\0')
-    return {};
-  return std::filesystem::path(home) / ".config" / "vinput" /
-         "config.json";
+  return VinputConfigDir() / "config.json";
 }
 
 std::filesystem::path FcitxAddonConfigPath() {
@@ -108,14 +132,7 @@ std::filesystem::path FcitxAddonConfigPath() {
 }
 
 std::filesystem::path RegistryCacheDir() {
-  const char *xdg = std::getenv("XDG_CACHE_HOME");
-  if (xdg && xdg[0] != '\0') {
-    return std::filesystem::path(xdg) / "vinput" / "registry";
-  }
-  const char *home = std::getenv("HOME");
-  if (!home || home[0] == '\0')
-    return {};
-  return std::filesystem::path(home) / ".cache" / "vinput" / "registry";
+  return VinputCacheDir() / "registry";
 }
 
 std::filesystem::path FlatpakInfoPath() {
@@ -123,37 +140,15 @@ std::filesystem::path FlatpakInfoPath() {
 }
 
 std::filesystem::path UserSystemdUnitDir() {
-  const char *xdg = std::getenv("XDG_CONFIG_HOME");
-  if (xdg && xdg[0] != '\0') {
-    return std::filesystem::path(xdg) / "systemd" / "user";
-  }
-  const char *home = std::getenv("HOME");
-  if (!home || home[0] == '\0') {
-    return {};
-  }
-  return std::filesystem::path(home) / ".config" / "systemd" / "user";
+  return XdgConfigHome() / "systemd" / "user";
 }
 
-std::filesystem::path UserAsrProviderDir() {
-  const char *xdg = std::getenv("XDG_CONFIG_HOME");
-  if (xdg && xdg[0] != '\0') {
-    return std::filesystem::path(xdg) / "vinput" / "asr-providers";
-  }
-  const char *home = std::getenv("HOME");
-  if (!home || home[0] == '\0')
-    return {};
-  return std::filesystem::path(home) / ".config" / "vinput" / "asr-providers";
+std::filesystem::path ManagedAsrProviderDir() {
+  return VinputDataDir() / "asr-providers";
 }
 
-std::filesystem::path UserLlmAdaptorDir() {
-  const char *xdg = std::getenv("XDG_CONFIG_HOME");
-  if (xdg && xdg[0] != '\0') {
-    return std::filesystem::path(xdg) / "vinput" / "llm-adaptors";
-  }
-  const char *home = std::getenv("HOME");
-  if (!home || home[0] == '\0')
-    return {};
-  return std::filesystem::path(home) / ".config" / "vinput" / "llm-adaptors";
+std::filesystem::path ManagedLlmAdaptorDir() {
+  return VinputDataDir() / "llm-adaptors";
 }
 
 std::filesystem::path AdaptorRuntimeDir() {
