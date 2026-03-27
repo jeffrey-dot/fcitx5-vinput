@@ -6,8 +6,8 @@
 #include "common/llm/adaptor_manager.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
-#include "common/registry/i18n.h"
-#include "common/registry/script_resource.h"
+#include "common/registry/registry_i18n.h"
+#include "common/registry/registry_scripts.h"
 #include "common/utils/string_utils.h"
 
 namespace {

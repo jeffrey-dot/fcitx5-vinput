@@ -1,4 +1,4 @@
-#include "common/registry/model_repository.h"
+#include "common/registry/registry_models.h"
 
 #include <archive.h>
 #include <archive_entry.h>
@@ -15,7 +15,7 @@
 
 #include "common/utils/downloader.h"
 #include "common/utils/file_utils.h"
-#include "common/registry/cache.h"
+#include "common/registry/registry_cache.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;

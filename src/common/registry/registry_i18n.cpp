@@ -1,11 +1,11 @@
-#include "common/registry/i18n.h"
+#include "common/registry/registry_i18n.h"
 
 #include <cstdlib>
 #include <nlohmann/json.hpp>
 
 #include "common/config/core_config.h"
 #include "common/utils/downloader.h"
-#include "common/registry/cache.h"
+#include "common/registry/registry_cache.h"
 
 namespace vinput::registry {
 

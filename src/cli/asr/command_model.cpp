@@ -4,8 +4,8 @@
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/asr/model_manager.h"
-#include "common/registry/model_repository.h"
-#include "common/registry/i18n.h"
+#include "common/registry/registry_models.h"
+#include "common/registry/registry_i18n.h"
 #include "common/utils/download_progress.h"
 #include "common/utils/string_utils.h"
 
