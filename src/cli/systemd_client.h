@@ -4,8 +4,6 @@
 
 namespace vinput::cli {
 
-constexpr const char* kServiceUnit = "vinput-daemon.service";
-
 int SystemctlStart();
 int SystemctlStop();
 int SystemctlRestart();

@@ -237,8 +237,8 @@ vinput device use <name>        # Set active device
 <summary>Config Helpers</summary>
 
 ```bash
-vinput config set extra.hotwords_file <path> # Write a supported config value
-vinput config edit extra                    # Edit core config file
+vinput config set core.global.capture_device <name> # Write a supported config value
+vinput config edit core                     # Edit core config file
 vinput config edit fcitx                    # Edit Fcitx addon config
 ```
 

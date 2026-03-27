@@ -1,6 +1,6 @@
 #pragma once
 #include "cli/formatter.h"
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"
 

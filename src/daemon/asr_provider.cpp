@@ -3,8 +3,8 @@
 #include "asr_engine.h"
 #include "common/i18n.h"
 #include "common/model_manager.h"
-#include "common/process_utils.h"
-#include "common/string_utils.h"
+#include "common/utils/process_utils.h"
+#include "common/utils/string_utils.h"
 
 #include <cstddef>
 #include <span>

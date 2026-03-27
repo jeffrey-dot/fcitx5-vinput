@@ -33,7 +33,7 @@ class ModelRepository {
 public:
   explicit ModelRepository(const std::string &base_dir);
 
-  // Fetch remote model registry
+  // Fetch remote model registry.
   std::vector<RemoteModelEntry> FetchRegistry(const std::string &registry_url,
                                               std::string *error) const;
   std::vector<RemoteModelEntry> FetchRegistry(

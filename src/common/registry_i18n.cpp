@@ -3,8 +3,8 @@
 #include <cstdlib>
 #include <nlohmann/json.hpp>
 
-#include "common/core_config.h"
-#include "common/downloader.h"
+#include "common/config/core_config.h"
+#include "common/utils/downloader.h"
 #include "common/registry_cache.h"
 
 namespace vinput::registry {
@@ -98,8 +98,8 @@ I18nMap FetchI18nMap(const std::string &locale,
   options.timeout_seconds = 20;
   options.max_bytes = 1024 * 1024;
   if (!vinput::registry::cache::FetchText(
-          urls, vinput::registry::cache::I18nPath(locale),
-          options, &content, &result, error)) {
+          urls, vinput::registry::cache::I18nPath(locale), options, &content,
+          &result, error)) {
     return {};
   }
   return ParseI18nJson(content, error);

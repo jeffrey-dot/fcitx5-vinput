@@ -1,9 +1,9 @@
 #include "cli/command_device.h"
 #include "cli/cli_helpers.h"
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/pipewire_device.h"
-#include "common/string_utils.h"
+#include "common/utils/string_utils.h"
 
 #include <nlohmann/json.hpp>
 #include <vector>

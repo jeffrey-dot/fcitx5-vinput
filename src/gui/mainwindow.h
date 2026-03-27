@@ -13,7 +13,7 @@
 #include <QTableWidget>
 #include <QTextEdit>
 
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 
 class QProcess;
 class QThread;

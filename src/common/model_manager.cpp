@@ -6,7 +6,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-#include "common/path_utils.h"
+#include "common/utils/path_utils.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;

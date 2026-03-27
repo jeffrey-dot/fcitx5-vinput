@@ -1,0 +1,323 @@
+#include "common/config/core_config_types.h"
+
+#include <map>
+#include <string>
+#include <variant>
+#include <vector>
+
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::ordered_json;
+
+// ---------------------------------------------------------------------------
+// LlmProvider
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const LlmProvider &p) {
+  j = json::object();
+  j["id"] = p.id;
+  if (!p.base_url.empty()) {
+    j["base_url"] = p.base_url;
+  }
+  if (!p.api_key.empty()) {
+    j["api_key"] = p.api_key;
+  }
+}
+
+void from_json(const json &j, LlmProvider &p) {
+  p.id = j.value("id", p.id);
+  p.base_url = j.value("base_url", p.base_url);
+  p.api_key = j.value("api_key", p.api_key);
+}
+
+// ---------------------------------------------------------------------------
+// LlmAdaptor
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const LlmAdaptor &p) {
+  j = json::object();
+  j["id"] = p.id;
+  j["command"] = p.command;
+  if (!p.args.empty()) {
+    j["args"] = p.args;
+  }
+  if (!p.env.empty()) {
+    j["env"] = p.env;
+  }
+}
+
+void from_json(const json &j, LlmAdaptor &p) {
+  p.id = j.value("id", p.id);
+  p.command = j.value("command", p.command);
+  if (j.contains("args") && j.at("args").is_array()) {
+    p.args = j.at("args").get<std::vector<std::string>>();
+  }
+  if (j.contains("env") && j.at("env").is_object()) {
+    p.env = j.at("env").get<std::map<std::string, std::string>>();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// LocalAsrProvider
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const LocalAsrProvider &p) {
+  j = json::object();
+  j["id"] = p.id;
+  j["type"] = vinput::asr::kLocalProviderType;
+  if (!p.model.empty()) {
+    j["model"] = p.model;
+  }
+  if (!p.hotwordsFile.empty()) {
+    j["hotwords_file"] = p.hotwordsFile;
+  }
+  if (p.timeoutMs > 0) {
+    j["timeout_ms"] = p.timeoutMs;
+  }
+}
+
+void from_json(const json &j, LocalAsrProvider &p) {
+  p.id = j.value("id", p.id);
+  p.model = j.value("model", p.model);
+  p.hotwordsFile = j.value("hotwords_file", p.hotwordsFile);
+  p.timeoutMs = j.value("timeout_ms", p.timeoutMs);
+}
+
+// ---------------------------------------------------------------------------
+// CommandAsrProvider
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const CommandAsrProvider &p) {
+  j = json::object();
+  j["id"] = p.id;
+  j["type"] = vinput::asr::kCommandProviderType;
+  if (!p.command.empty()) {
+    j["command"] = p.command;
+  }
+  if (!p.args.empty()) {
+    j["args"] = p.args;
+  }
+  if (!p.env.empty()) {
+    j["env"] = p.env;
+  }
+  if (p.timeoutMs > 0) {
+    j["timeout_ms"] = p.timeoutMs;
+  }
+}
+
+void from_json(const json &j, CommandAsrProvider &p) {
+  p.id = j.value("id", p.id);
+  p.command = j.value("command", p.command);
+  if (j.contains("args") && j.at("args").is_array()) {
+    p.args = j.at("args").get<std::vector<std::string>>();
+  }
+  if (j.contains("env") && j.at("env").is_object()) {
+    p.env = j.at("env").get<std::map<std::string, std::string>>();
+  }
+  p.timeoutMs = j.value("timeout_ms", p.timeoutMs);
+}
+
+// ---------------------------------------------------------------------------
+// AsrProvider (variant)
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const AsrProvider &p) {
+  std::visit([&j](const auto &provider) { to_json(j, provider); }, p);
+}
+
+void from_json(const json &j, AsrProvider &p) {
+  const std::string type = j.value("type", std::string{});
+  if (type == vinput::asr::kLocalProviderType) {
+    LocalAsrProvider local;
+    from_json(j, local);
+    p = std::move(local);
+  } else if (type == vinput::asr::kCommandProviderType) {
+    CommandAsrProvider cmd;
+    from_json(j, cmd);
+    p = std::move(cmd);
+  }
+  // unknown type: leave p in default-constructed state
+}
+
+// ---------------------------------------------------------------------------
+// CoreConfig::Global
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const CoreConfig::Global &g) {
+  j = json::object();
+  j["default_language"] = g.defaultLanguage;
+  j["capture_device"] = g.captureDevice;
+}
+
+void from_json(const json &j, CoreConfig::Global &g) {
+  g.defaultLanguage = j.value("default_language", g.defaultLanguage);
+  g.captureDevice = j.value("capture_device", g.captureDevice);
+}
+
+// ---------------------------------------------------------------------------
+// vinput::scene::Definition
+// ---------------------------------------------------------------------------
+
+namespace vinput::scene {
+
+void to_json(json &j, const Definition &d) {
+  j = json::object();
+  j["id"] = d.id;
+  if (!d.label.empty() && !IsBuiltinSceneLabelKey(d.label) &&
+      !IsBuiltinSceneId(d.id)) {
+    j["label"] = d.label;
+  }
+  if (!d.prompt.empty()) {
+    j["prompt"] = d.prompt;
+  }
+  if (!d.provider_id.empty()) {
+    j["provider_id"] = d.provider_id;
+  }
+  if (!d.model.empty()) {
+    j["model"] = d.model;
+  }
+  if (d.candidate_count != vinput::scene::kDefaultCandidateCount) {
+    j["candidate_count"] = d.candidate_count;
+  }
+  if (d.timeout_ms != vinput::scene::kDefaultTimeoutMs) {
+    j["timeout_ms"] = d.timeout_ms;
+  }
+}
+
+void from_json(const json &j, Definition &d) {
+  d.id = j.value("id", std::string{});
+  d.label = j.value("label", std::string{});
+  d.prompt = j.value("prompt", std::string{});
+  d.provider_id = j.value("provider_id", std::string{});
+  d.model = j.value("model", std::string{});
+  d.candidate_count =
+      j.value("candidate_count", vinput::scene::kDefaultCandidateCount);
+  d.timeout_ms = j.value("timeout_ms", vinput::scene::kDefaultTimeoutMs);
+  d.builtin = j.value("builtin", false);
+}
+
+}  // namespace vinput::scene
+
+// ---------------------------------------------------------------------------
+// CoreConfig::Llm
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const CoreConfig::Llm &p) {
+  j = json::object();
+  j["providers"] = p.providers;
+  j["adaptors"] = p.adaptors;
+}
+
+void from_json(const json &j, CoreConfig::Llm &p) {
+  if (j.contains("providers")) {
+    p.providers = j.at("providers").get<std::vector<LlmProvider>>();
+  }
+  if (j.contains("adaptors")) {
+    p.adaptors = j.at("adaptors").get<std::vector<LlmAdaptor>>();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CoreConfig::Asr
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const CoreConfig::Asr::Vad &v) {
+  j = json::object();
+  j["enabled"] = v.enabled;
+}
+
+void from_json(const json &j, CoreConfig::Asr::Vad &v) {
+  v.enabled = j.value("enabled", v.enabled);
+}
+
+void to_json(json &j, const CoreConfig::Asr &a) {
+  j = json::object();
+  j["active_provider"] = a.activeProvider;
+  j["normalize_audio"] = a.normalizeAudio;
+  j["vad"] = a.vad;
+  j["providers"] = a.providers;
+}
+
+void from_json(const json &j, CoreConfig::Asr &a) {
+  a.activeProvider = j.value("active_provider", a.activeProvider);
+  a.normalizeAudio = j.value("normalize_audio", a.normalizeAudio);
+  if (j.contains("vad")) {
+    a.vad = j.at("vad").get<CoreConfig::Asr::Vad>();
+  }
+  if (j.contains("providers")) {
+    a.providers = j.at("providers").get<std::vector<AsrProvider>>();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CoreConfig::Registry
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const CoreConfig::Registry &r) {
+  j = json::object();
+  if (!r.baseUrls.empty()) {
+    j["base_urls"] = r.baseUrls;
+  }
+}
+
+void from_json(const json &j, CoreConfig::Registry &r) {
+  r.baseUrls.clear();
+  if (j.contains("base_urls") && j.at("base_urls").is_array()) {
+    for (const auto &value : j.at("base_urls")) {
+      if (value.is_string() && !value.get<std::string>().empty()) {
+        r.baseUrls.push_back(value.get<std::string>());
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CoreConfig::Scenes
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const CoreConfig::Scenes &s) {
+  j = json::object();
+  j["active_scene"] = s.activeScene;
+  j["definitions"] = s.definitions;
+}
+
+void from_json(const json &j, CoreConfig::Scenes &s) {
+  s.activeScene = j.value("active_scene", s.activeScene);
+  if (j.contains("definitions")) {
+    s.definitions =
+        j.at("definitions").get<std::vector<vinput::scene::Definition>>();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CoreConfig (top-level)
+// ---------------------------------------------------------------------------
+
+void to_json(json &j, const CoreConfig &p) {
+  j = json::object();
+  j["version"] = p.version;
+  j["registry"] = p.registry;
+  j["global"] = p.global;
+  j["asr"] = p.asr;
+  j["llm"] = p.llm;
+  j["scenes"] = p.scenes;
+}
+
+void from_json(const json &j, CoreConfig &p) {
+  p.version = j.value("version", p.version);
+  if (j.contains("registry")) {
+    p.registry = j.at("registry").get<CoreConfig::Registry>();
+  }
+  if (j.contains("global")) {
+    p.global = j.at("global").get<CoreConfig::Global>();
+  }
+  if (j.contains("llm")) {
+    p.llm = j.at("llm").get<CoreConfig::Llm>();
+  }
+  if (j.contains("scenes")) {
+    p.scenes = j.at("scenes").get<CoreConfig::Scenes>();
+  }
+  if (j.contains("asr")) {
+    p.asr = j.at("asr").get<CoreConfig::Asr>();
+  }
+}

@@ -1,4 +1,4 @@
-#include "vinput_config.h"
+#include "common/config/vinput_config.h"
 
 #include "common/i18n.h"
 

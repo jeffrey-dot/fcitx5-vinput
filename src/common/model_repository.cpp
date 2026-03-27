@@ -13,8 +13,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include "common/downloader.h"
-#include "common/file_utils.h"
+#include "common/utils/downloader.h"
+#include "common/utils/file_utils.h"
 #include "common/registry_cache.h"
 
 namespace fs = std::filesystem;

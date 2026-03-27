@@ -6,7 +6,7 @@
 
 #include "cli/editor_utils.h"
 #include "common/i18n.h"
-#include "common/config_path.h"
+#include "common/config/config_router.h"
 
 int RunConfigGet(const std::string& path, Formatter& fmt, const CliContext& ctx) {
     std::string value, error;
@@ -43,8 +43,11 @@ int RunConfigSet(const std::string& path, const std::string& value_arg, bool fro
 }
 
 int RunConfigEdit(const std::string& target, Formatter& fmt, const CliContext& ctx) {
-    (void)fmt;
     (void)ctx;
+    if (target != "core" && target != "fcitx") {
+        fmt.PrintError(_("Unsupported config target. Use 'core' or 'fcitx'."));
+        return 1;
+    }
     auto file_path = vinput::config::GetEditTarget(target);
     return OpenInEditor(file_path);
 }

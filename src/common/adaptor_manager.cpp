@@ -8,9 +8,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "common/core_config.h"
-#include "common/path_utils.h"
-#include "common/process_utils.h"
+#include "common/config/core_config.h"
+#include "common/utils/path_utils.h"
+#include "common/utils/process_utils.h"
 
 namespace vinput::adaptor {
 

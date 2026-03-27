@@ -3,11 +3,11 @@
 #include "cli/systemd_client.h"
 #include "common/i18n.h"
 #include "cli/progress.h"
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 #include "common/model_manager.h"
 #include "common/model_repository.h"
 #include "common/registry_i18n.h"
-#include "common/string_utils.h"
+#include "common/utils/string_utils.h"
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>

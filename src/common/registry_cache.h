@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "common/downloader.h"
+#include "common/utils/downloader.h"
 
 namespace vinput::registry::cache {
 

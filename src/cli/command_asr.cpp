@@ -3,12 +3,12 @@
 #include "cli/cli_helpers.h"
 #include "cli/editor_utils.h"
 #include "cli/systemd_client.h"
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 #include "common/i18n.h"
-#include "common/path_utils.h"
+#include "common/utils/path_utils.h"
 #include "common/registry_i18n.h"
 #include "common/script_resource.h"
-#include "common/string_utils.h"
+#include "common/utils/string_utils.h"
 
 #include <algorithm>
 #include <filesystem>

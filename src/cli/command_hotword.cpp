@@ -2,7 +2,7 @@
 #include "cli/cli_helpers.h"
 #include "cli/editor_utils.h"
 #include "common/i18n.h"
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 
 namespace {
 

@@ -18,7 +18,7 @@
 #include "cli/command_scene.h"
 #include "cli/command_status.h"
 #include "cli/formatter.h"
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"
 
@@ -229,18 +229,18 @@ int main(int argc, char *argv[]) {
 
   std::string config_get_path;
   auto *config_get =
-      config_cmd->add_subcommand("get", _("Get a config value by dotpath"));
+      config_cmd->add_subcommand("get", _("Get a config value by JSON Pointer"));
   config_get
       ->add_option("path", config_get_path,
-                   _("Config dotpath (e.g. fcitx.triggerKey)"))
+                   _("JSON Pointer (e.g. /global/capture_device)"))
       ->required();
 
   std::string config_set_path;
   std::string config_set_value;
   bool config_set_stdin = false;
   auto *config_set =
-      config_cmd->add_subcommand("set", _("Set a config value by dotpath"));
-  config_set->add_option("path", config_set_path, _("Config dotpath"))->required();
+      config_cmd->add_subcommand("set", _("Set a config value by JSON Pointer"));
+  config_set->add_option("path", config_set_path, _("JSON Pointer (e.g. /global/capture_device)"))->required();
   config_set->add_option("value", config_set_value, _("New value"));
   config_set->add_flag("-i,--stdin", config_set_stdin, _("Read value from stdin"));
 
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
       config_cmd->add_subcommand("edit", _("Open config file in editor"));
   config_edit
       ->add_option("target", config_edit_target,
-                   _("Config target: fcitx or extra"))
+                   _("Config target: fcitx or core"))
       ->required();
 
   // ---- daemon subcommand ----

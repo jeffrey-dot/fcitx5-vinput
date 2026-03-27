@@ -1,11 +1,11 @@
-#include "common/downloader.h"
+#include "common/utils/downloader.h"
 
 #include <curl/curl.h>
 
 #include <fstream>
 #include <string>
 
-#include "common/file_utils.h"
+#include "common/utils/file_utils.h"
 
 namespace vinput::download {
 

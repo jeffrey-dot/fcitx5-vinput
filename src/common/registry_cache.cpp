@@ -1,7 +1,7 @@
 #include "common/registry_cache.h"
 
-#include "common/file_utils.h"
-#include "common/path_utils.h"
+#include "common/utils/file_utils.h"
+#include "common/utils/path_utils.h"
 
 namespace vinput::registry::cache {
 
@@ -39,7 +39,7 @@ std::filesystem::path CachePath(std::string_view name) {
   return vinput::path::RegistryCacheDir() / name;
 }
 
-} // namespace
+}
 
 bool FetchText(const std::vector<std::string> &urls,
                const std::filesystem::path &cache_path,

@@ -1,9 +1,9 @@
 #include "cli/command_scene.h"
 #include "cli/cli_helpers.h"
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"
-#include "common/string_utils.h"
+#include "common/utils/string_utils.h"
 #include <nlohmann/json.hpp>
 
 int RunSceneList(Formatter &fmt, const CliContext &ctx) {

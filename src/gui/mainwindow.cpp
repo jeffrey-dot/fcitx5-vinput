@@ -37,9 +37,9 @@
 #include <optional>
 
 #include "common/adaptor_manager.h"
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 #include "common/llm_defaults.h"
-#include "common/path_utils.h"
+#include "common/utils/path_utils.h"
 
 namespace {
 
@@ -48,20 +48,20 @@ QString MainWindowTranslate(const char *sourceText) {
 }
 
 QString ResolveVinputExecutable(QString *error_out = nullptr) {
-  if (vinput::path::isInsideFlatpak()) {
-    constexpr auto kFlatpakVinputPath = "/app/addons/Vinput/bin/vinput";
-    const QString flatpak_path = QString::fromLatin1(kFlatpakVinputPath);
-    if (QFileInfo::exists(flatpak_path)) {
-      return flatpak_path;
+  const QString configured_path = QString::fromStdString(
+      vinput::path::CliExecutablePath().string());
+  if (vinput::path::IsInsideFlatpak()) {
+    if (QFileInfo::exists(configured_path)) {
+      return configured_path;
     }
     if (error_out) {
       *error_out = QObject::tr("Flatpak Vinput CLI not found at %1")
-                       .arg(flatpak_path);
+                       .arg(configured_path);
     }
     return {};
   }
 
-  const QString vinput_path = QStandardPaths::findExecutable("vinput");
+  const QString vinput_path = QStandardPaths::findExecutable(configured_path);
   if (vinput_path.isEmpty() && error_out) {
     *error_out = QObject::tr("vinput not found in PATH");
   }
@@ -2291,12 +2291,12 @@ void MainWindow::onBrowseHotwordsClicked() {
 // ---------------------------------------------------------------------------
 
 void MainWindow::checkFlatpakPermissions() {
-  if (!vinput::path::isInsideFlatpak()) return;
+  if (!vinput::path::IsInsideFlatpak()) return;
 
   // Try to find permissions
   bool missing = false;
   QByteArray info = []{
-      QFile f("/.flatpak-info");
+      QFile f(QString::fromStdString(vinput::path::FlatpakInfoPath().string()));
       return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray{};
   }();
   if (!info.contains("pipewire")) missing = true;

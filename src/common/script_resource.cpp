@@ -6,9 +6,9 @@
 
 #include <nlohmann/json.hpp>
 
-#include "common/core_config.h"
-#include "common/downloader.h"
-#include "common/path_utils.h"
+#include "common/config/core_config.h"
+#include "common/utils/downloader.h"
+#include "common/utils/path_utils.h"
 #include "common/registry_cache.h"
 
 namespace vinput::script {
@@ -107,6 +107,13 @@ void FillDefaultEnvMap(const std::vector<EnvSpec> &envs,
   }
 }
 
+bool IsManagedScriptPath(const fs::path &expected, const std::vector<std::string> &args) {
+  if (args.size() != 1) {
+    return false;
+  }
+  return fs::path(args.front()).lexically_normal() == expected.lexically_normal();
+}
+
 } // namespace
 
 std::vector<RegistryEntry> FetchRegistry(Kind kind,
@@ -125,11 +132,12 @@ std::vector<RegistryEntry> FetchRegistry(Kind kind,
   options.timeout_seconds = 30;
   options.max_bytes = 4 * 1024 * 1024;
   vinput::download::Result result;
-  const auto cache_path = kind == Kind::kAsrProvider
-                              ? vinput::registry::cache::AsrProviderRegistryPath()
-                              : vinput::registry::cache::LlmAdaptorRegistryPath();
-  if (!vinput::registry::cache::FetchText(urls, cache_path, options, &content,
-                                          &result, error)) {
+  if (!vinput::registry::cache::FetchText(
+          urls,
+          kind == Kind::kAsrProvider
+              ? vinput::registry::cache::AsrProviderRegistryPath()
+              : vinput::registry::cache::LlmAdaptorRegistryPath(),
+          options, &content, &result, error)) {
     if (resolved_registry_url) {
       resolved_registry_url->clear();
     }
@@ -190,17 +198,26 @@ bool MaterializeAsrProvider(CoreConfig *config, const RegistryEntry &entry,
                          [&entry](const AsrProvider &provider) {
                            return provider.name == entry.id;
                          });
+  const fs::path managed_path = DefaultLocalScriptPath(Kind::kAsrProvider, entry.id);
 
   if (it == config->asr.providers.end()) {
-    AsrProvider provider;
-    provider.name = entry.id;
-    provider.type = vinput::asr::kCommandProviderType;
+    CommandAsrProvider provider;
+    provider.id = entry.id;
     provider.timeoutMs = 60000;
     provider.command = entry.command;
     provider.args = {script_path.string()};
     FillDefaultEnvMap(entry.envs, &provider.env);
     config->asr.providers.push_back(std::move(provider));
   } else {
+    if (!IsManagedScriptPath(managed_path, std::visit([](const AsrProviderBase &b) -> const std::vector<std::string> * {
+      if (auto *cmd = dynamic_cast<const CommandAsrProvider *>(&b)) return &cmd->args;
+      return nullptr;
+    }, *it))) {
+      if (error) {
+        *error = "refusing to overwrite user-defined ASR provider: " + entry.id;
+      }
+      return false;
+    }
     it->type = vinput::asr::kCommandProviderType;
     it->model.clear();
     it->command = entry.command;
@@ -230,6 +247,7 @@ bool MaterializeLlmAdaptor(CoreConfig *config, const RegistryEntry &entry,
                          [&entry](const LlmAdaptor &adaptor) {
                            return adaptor.id == entry.id;
                          });
+  const fs::path managed_path = DefaultLocalScriptPath(Kind::kLlmAdaptor, entry.id);
 
   if (it == config->llm.adaptors.end()) {
     LlmAdaptor adaptor;
@@ -239,6 +257,12 @@ bool MaterializeLlmAdaptor(CoreConfig *config, const RegistryEntry &entry,
     FillDefaultEnvMap(entry.envs, &adaptor.env);
     config->llm.adaptors.push_back(std::move(adaptor));
   } else {
+    if (!IsManagedScriptPath(managed_path, it->args)) {
+      if (error) {
+        *error = "refusing to overwrite user-defined adaptor: " + entry.id;
+      }
+      return false;
+    }
     it->command = entry.command;
     it->args = {script_path.string()};
     FillDefaultEnvMap(entry.envs, &it->env);

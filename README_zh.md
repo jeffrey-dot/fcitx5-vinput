@@ -235,8 +235,8 @@ vinput device use <名称>         # 设置当前设备
 <summary>配置辅助</summary>
 
 ```bash
-vinput config set extra.hotwords_file <路径>  # 写入支持的配置项
-vinput config edit extra                     # 编辑核心配置文件
+vinput config set core.global.capture_device <名称>  # 写入支持的配置项
+vinput config edit core                      # 编辑核心配置文件
 vinput config edit fcitx                     # 编辑 Fcitx 插件配置
 ```
 

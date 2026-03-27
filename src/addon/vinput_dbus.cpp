@@ -3,7 +3,9 @@
 #include "common/error_info.h"
 #include "common/i18n.h"
 #include "common/recognition_result.h"
-#include "common/string_utils.h"
+#include "common/utils/path_utils.h"
+#include "common/utils/path_utils.h"
+#include "common/utils/string_utils.h"
 
 #include "notifications_public.h"
 #include <dbus_public.h>
@@ -26,7 +28,6 @@ constexpr const char *kSystemdManagerInterface =
     "org.freedesktop.systemd1.Manager";
 constexpr const char *kSystemdRestartUnit = "RestartUnit";
 constexpr uint64_t kSystemdCallTimeoutUsec = 5 * 1000 * 1000;
-constexpr const char *kDaemonUnitName = "vinput-daemon.service";
 constexpr const char *kReplaceMode = "replace";
 constexpr uint64_t kDaemonCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr uint64_t kStatusSyncIntervalUsec = 200 * 1000;
@@ -447,7 +448,7 @@ void VinputEngine::restartDaemon() {
   auto msg =
       bus_->createMethodCall(kSystemdBusName, kSystemdPath,
                              kSystemdManagerInterface, kSystemdRestartUnit);
-  msg << kDaemonUnitName << kReplaceMode;
+  msg << std::string(vinput::path::DaemonServiceUnitName()) << kReplaceMode;
 
   auto reply = msg.call(kSystemdCallTimeoutUsec);
   if (!reply) {

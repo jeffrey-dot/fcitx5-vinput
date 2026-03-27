@@ -1,80 +1,24 @@
 #pragma once
 
 #include <filesystem>
-#include <map>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
-#include "common/postprocess_scene.h"
-
-namespace vinput::asr {
-
-inline constexpr char kLocalProviderType[] = "local";
-inline constexpr char kCommandProviderType[] = "command";
-
-}  // namespace vinput::asr
-
-struct LlmProvider {
-  std::string name;
-  std::string base_url;
-  std::string api_key;
-};
-
-struct LlmAdaptor {
-  std::string id;
-  std::string command;
-  std::vector<std::string> args;
-  std::map<std::string, std::string> env;
-};
-
-struct AsrProvider {
-  std::string name;
-  std::string type;
-  std::string model;
-  std::string command;
-  std::string hotwordsFile;
-  std::vector<std::string> args;
-  std::map<std::string, std::string> env;
-  int timeoutMs = 0;
-};
-
-struct CoreConfig {
-  int version = 0;
-  struct Registry {
-    std::vector<std::string> baseUrls;
-  } registry;
-  struct Global {
-    std::string defaultLanguage;
-    std::string captureDevice;
-  } global;
-
-  struct Llm {
-    std::vector<LlmProvider> providers;
-    std::vector<LlmAdaptor> adaptors;
-  } llm;
-
-  struct Asr {
-    std::string activeProvider;
-    bool normalizeAudio{true};
-    struct Vad {
-      bool enabled{true};
-    } vad;
-    std::vector<AsrProvider> providers;
-  } asr;
-
-  struct Scenes {
-    std::string activeScene;
-    std::vector<vinput::scene::Definition> definitions;
-  } scenes;
-};
+#include "common/config/core_config_types.h"
 
 // API Functions
 CoreConfig LoadCoreConfig();
 bool LoadBundledDefaultCoreConfig(CoreConfig *config, std::string *error);
+bool InitializeCoreConfig(std::string *error);
 bool SaveCoreConfig(const CoreConfig &config);
 std::string GetCoreConfigPath();
 
+void to_json(nlohmann::ordered_json &j, const CoreConfig &config);
+void from_json(const nlohmann::ordered_json &j, CoreConfig &config);
+
 void NormalizeCoreConfig(CoreConfig *config);
+bool ValidateCoreConfig(const CoreConfig &config, std::string *error);
 const LlmProvider *ResolveLlmProvider(const CoreConfig &config,
                                       const std::string &provider_id);
 const LlmAdaptor *ResolveLlmAdaptor(const CoreConfig &config,
@@ -86,7 +30,6 @@ const AsrProvider *ResolveActiveLocalAsrProvider(const CoreConfig &config);
 const AsrProvider *ResolvePreferredLocalAsrProvider(const CoreConfig &config);
 std::string ResolveActiveLocalModel(const CoreConfig &config);
 std::string ResolvePreferredLocalModel(const CoreConfig &config);
-std::vector<std::string> ResolveRegistryUrls(const CoreConfig &config);
 std::vector<std::string> ResolveModelRegistryUrls(const CoreConfig &config);
 std::vector<std::string> ResolveAsrProviderRegistryUrls(const CoreConfig &config);
 std::vector<std::string> ResolveLlmAdaptorRegistryUrls(const CoreConfig &config);

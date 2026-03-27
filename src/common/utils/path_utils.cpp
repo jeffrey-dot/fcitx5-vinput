@@ -1,8 +1,62 @@
-#include "common/path_utils.h"
+#include "common/utils/path_utils.h"
 #include <cstdlib>
 #include <sys/stat.h>
 
 namespace vinput::path {
+
+namespace {
+
+constexpr std::string_view kDaemonServiceUnitName = "vinput-daemon.service";
+constexpr std::string_view kCliExecutableName = "vinput";
+constexpr std::string_view kDaemonExecutableName = "vinput-daemon";
+
+std::filesystem::path FlatpakAddonRootDir() {
+  return std::filesystem::path("/app") / "addons" / "Vinput";
+}
+
+std::filesystem::path FlatpakBundledSystemdUnitPath(std::string_view unit_name) {
+  return FlatpakAddonRootDir() / "share" / "systemd" / "user" /
+         std::filesystem::path(unit_name);
+}
+
+std::filesystem::path FlatpakBundledExecutablePath(std::string_view name) {
+  return FlatpakAddonRootDir() / "bin" / std::filesystem::path(name);
+}
+
+std::filesystem::path UserSystemdUnitPath(std::string_view unit_name) {
+  return vinput::path::UserSystemdUnitDir() / std::filesystem::path(unit_name);
+}
+
+} // namespace
+
+std::string_view DaemonServiceUnitName() { return kDaemonServiceUnitName; }
+
+std::string_view CliExecutableName() { return kCliExecutableName; }
+
+std::filesystem::path CliExecutablePath() {
+  if (IsInsideFlatpak()) {
+    return FlatpakBundledExecutablePath(kCliExecutableName);
+  }
+  return std::filesystem::path(kCliExecutableName);
+}
+
+std::filesystem::path DaemonExecutablePath() {
+  if (IsInsideFlatpak()) {
+    return FlatpakBundledExecutablePath(kDaemonExecutableName);
+  }
+  return std::filesystem::path(kDaemonExecutableName);
+}
+
+std::filesystem::path DaemonServiceUnitInstallPath() {
+  return UserSystemdUnitPath(DaemonServiceUnitName());
+}
+
+std::filesystem::path DaemonServiceUnitTemplatePath() {
+  if (IsInsideFlatpak()) {
+    return FlatpakBundledSystemdUnitPath(DaemonServiceUnitName());
+  }
+  return {};
+}
 
 std::filesystem::path ExpandUserPath(std::string_view path) {
   if (path.empty() || path[0] != '~') {
@@ -40,6 +94,19 @@ std::filesystem::path CoreConfigPath() {
          "config.json";
 }
 
+std::filesystem::path FcitxAddonConfigPath() {
+  const char *xdg = std::getenv("XDG_CONFIG_HOME");
+  if (xdg && xdg[0] != '\0') {
+    return std::filesystem::path(xdg) / "fcitx5" / "conf" / "vinput.conf";
+  }
+  const char *home = std::getenv("HOME");
+  if (!home || home[0] == '\0') {
+    return {};
+  }
+  return std::filesystem::path(home) / ".config" / "fcitx5" / "conf" /
+         "vinput.conf";
+}
+
 std::filesystem::path RegistryCacheDir() {
   const char *xdg = std::getenv("XDG_CACHE_HOME");
   if (xdg && xdg[0] != '\0') {
@@ -49,6 +116,22 @@ std::filesystem::path RegistryCacheDir() {
   if (!home || home[0] == '\0')
     return {};
   return std::filesystem::path(home) / ".cache" / "vinput" / "registry";
+}
+
+std::filesystem::path FlatpakInfoPath() {
+  return std::filesystem::path("/.flatpak-info");
+}
+
+std::filesystem::path UserSystemdUnitDir() {
+  const char *xdg = std::getenv("XDG_CONFIG_HOME");
+  if (xdg && xdg[0] != '\0') {
+    return std::filesystem::path(xdg) / "systemd" / "user";
+  }
+  const char *home = std::getenv("HOME");
+  if (!home || home[0] == '\0') {
+    return {};
+  }
+  return std::filesystem::path(home) / ".config" / "systemd" / "user";
 }
 
 std::filesystem::path UserAsrProviderDir() {
@@ -86,9 +169,9 @@ std::filesystem::path AdaptorRuntimeDir() {
   return base / "vinput" / "adaptors";
 }
 
-bool isInsideFlatpak() {
+bool IsInsideFlatpak() {
   struct stat st;
-  return stat("/.flatpak-info", &st) == 0;
+  return stat(FlatpakInfoPath().c_str(), &st) == 0;
 }
 
 } // namespace vinput::path

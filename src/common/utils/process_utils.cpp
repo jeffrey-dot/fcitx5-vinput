@@ -1,8 +1,7 @@
-#include "common/process_utils.h"
+#include "common/utils/process_utils.h"
 
 #include <cerrno>
 #include <chrono>
-#include <csignal>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -96,7 +95,7 @@ bool ApplyEnvironment(const CommandSpec &spec) {
   return true;
 }
 
-}  // namespace
+} // namespace
 
 CommandResult RunCommandWithInput(const CommandSpec &spec,
                                   std::span<const std::byte> input) {
@@ -110,7 +109,8 @@ CommandResult RunCommandWithInput(const CommandSpec &spec,
   int stdin_pipe[2] = {-1, -1};
   int stdout_pipe[2] = {-1, -1};
   int stderr_pipe[2] = {-1, -1};
-  if (pipe(stdin_pipe) != 0 || pipe(stdout_pipe) != 0 || pipe(stderr_pipe) != 0) {
+  if (pipe(stdin_pipe) != 0 || pipe(stdout_pipe) != 0 ||
+      pipe(stderr_pipe) != 0) {
     result.launch_failed = true;
     result.stderr_text = std::string("pipe failed: ") + std::strerror(errno);
     CloseIfOpen(&stdin_pipe[0]);
@@ -137,9 +137,8 @@ CommandResult RunCommandWithInput(const CommandSpec &spec,
   std::vector<char *> envp = BuildEnvp(spec, &env_storage);
 
   pid_t pid = -1;
-  const int spawn_rc =
-      posix_spawnp(&pid, spec.command.c_str(), &actions, nullptr, argv.data(),
-                   envp.data());
+  const int spawn_rc = posix_spawnp(&pid, spec.command.c_str(), &actions,
+                                    nullptr, argv.data(), envp.data());
   posix_spawn_file_actions_destroy(&actions);
 
   CloseIfOpen(&stdin_pipe[0]);
@@ -292,7 +291,8 @@ CommandResult RunCommandWithInput(const CommandSpec &spec,
         if (n == 0) {
           *open_flag = false;
         }
-        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+        if (n < 0 &&
+            (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
           if (errno == EINTR) {
             continue;
           }
@@ -488,4 +488,4 @@ bool SpawnForMonitoring(const CommandSpec &spec,
   return true;
 }
 
-}  // namespace vinput::process
+} // namespace vinput::process
