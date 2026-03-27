@@ -2,8 +2,8 @@
 
 #include <CLI/CLI.hpp>
 
-#include "cli/command_config.h"
 #include "cli/config/action.h"
+#include "cli/config/config_actions.h"
 #include "common/i18n.h"
 
 namespace vinput::cli::config {
@@ -19,7 +19,7 @@ void RegisterConfigCommands(CLI::App &app, CliAction *action) {
       ->required();
   get->callback([action, getPath]() {
     *action = [getPath](Formatter &fmt, const CliContext &ctx) {
-      return RunConfigGet(*getPath, fmt, ctx);
+      return RunConfigDomainGet(*getPath, fmt, ctx);
     };
   });
 
@@ -34,7 +34,7 @@ void RegisterConfigCommands(CLI::App &app, CliAction *action) {
   set->add_flag("-i,--stdin", *setStdin, _("Read value from stdin"));
   set->callback([action, setPath, setValue, setStdin]() {
     *action = [setPath, setValue, setStdin](Formatter &fmt, const CliContext &ctx) {
-      return RunConfigSet(*setPath, *setValue, *setStdin, fmt, ctx);
+      return RunConfigDomainSet(*setPath, *setValue, *setStdin, fmt, ctx);
     };
   });
 
@@ -45,7 +45,7 @@ void RegisterConfigCommands(CLI::App &app, CliAction *action) {
       ->required();
   edit->callback([action, editTarget]() {
     *action = [editTarget](Formatter &fmt, const CliContext &ctx) {
-      return RunConfigEdit(*editTarget, fmt, ctx);
+      return RunConfigDomainEdit(*editTarget, fmt, ctx);
     };
   });
 }

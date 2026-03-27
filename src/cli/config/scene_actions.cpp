@@ -1,12 +1,14 @@
-#include "cli/command_scene.h"
+#include "cli/config/scene_actions.h"
+
+#include <nlohmann/json.hpp>
+
 #include "cli/utils/cli_helpers.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"
 #include "common/utils/string_utils.h"
-#include <nlohmann/json.hpp>
 
-int RunSceneList(Formatter &fmt, const CliContext &ctx) {
+int RunSceneConfigList(Formatter &fmt, const CliContext &ctx) {
   CoreConfig config = LoadCoreConfig();
   const auto &scenes = config.scenes.definitions;
 
@@ -27,7 +29,9 @@ int RunSceneList(Formatter &fmt, const CliContext &ctx) {
     return 0;
   }
 
-  std::vector<std::string> headers = {_("ID"), _("LABEL"), _("PROVIDER"), _("MODEL"), _("CANDIDATES"), _("STATUS")};
+  std::vector<std::string> headers = {_("ID"), _("LABEL"), _("PROVIDER"),
+                                      _("MODEL"), _("CANDIDATES"),
+                                      _("STATUS")};
   std::vector<std::vector<std::string>> rows;
   for (const auto &scene : scenes) {
     std::string label = vinput::scene::DisplayLabel(scene);
@@ -42,11 +46,13 @@ int RunSceneList(Formatter &fmt, const CliContext &ctx) {
   return 0;
 }
 
-int RunSceneAdd(const std::string &id, const std::string &label,
-                const std::string &prompt, const std::string &provider_id,
-                const std::string &model, int candidate_count,
-                int timeout_ms, Formatter &fmt,
-                const CliContext & /*ctx*/) {
+int RunSceneConfigAdd(const std::string &id, const std::string &label,
+                      const std::string &prompt,
+                      const std::string &provider_id,
+                      const std::string &model, int candidate_count,
+                      int timeout_ms, Formatter &fmt,
+                      const CliContext &ctx) {
+  (void)ctx;
   CoreConfig config = LoadCoreConfig();
 
   vinput::scene::Definition def;
@@ -66,13 +72,15 @@ int RunSceneAdd(const std::string &id, const std::string &label,
   }
   FromSceneConfig(config.scenes, scene_config);
 
-  if (!SaveConfigOrFail(config, fmt)) return 1;
+  if (!SaveConfigOrFail(config, fmt))
+    return 1;
 
   fmt.PrintSuccess(vinput::str::FmtStr(_("Scene '%s' added."), id));
   return 0;
 }
 
-int RunSceneUse(const std::string &id, Formatter &fmt, const CliContext &ctx) {
+int RunSceneConfigUse(const std::string &id, Formatter &fmt,
+                      const CliContext &ctx) {
   (void)ctx;
   CoreConfig config = LoadCoreConfig();
 
@@ -84,14 +92,15 @@ int RunSceneUse(const std::string &id, Formatter &fmt, const CliContext &ctx) {
   }
   FromSceneConfig(config.scenes, scene_config);
 
-  if (!SaveConfigOrFail(config, fmt)) return 1;
+  if (!SaveConfigOrFail(config, fmt))
+    return 1;
 
   fmt.PrintSuccess(vinput::str::FmtStr(_("Default scene set to '%s'."), id));
   return 0;
 }
 
-int RunSceneRemove(const std::string &id, bool force, Formatter &fmt,
-                   const CliContext &ctx) {
+int RunSceneConfigRemove(const std::string &id, bool force, Formatter &fmt,
+                         const CliContext &ctx) {
   (void)ctx;
   CoreConfig config = LoadCoreConfig();
 
@@ -103,7 +112,8 @@ int RunSceneRemove(const std::string &id, bool force, Formatter &fmt,
   }
   FromSceneConfig(config.scenes, scene_config);
 
-  if (!SaveConfigOrFail(config, fmt)) return 1;
+  if (!SaveConfigOrFail(config, fmt))
+    return 1;
 
   fmt.PrintSuccess(vinput::str::FmtStr(_("Scene '%s' removed."), id));
   return 0;

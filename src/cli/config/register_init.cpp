@@ -2,8 +2,8 @@
 
 #include <CLI/CLI.hpp>
 
-#include "cli/command_init.h"
 #include "cli/config/action.h"
+#include "cli/config/init_actions.h"
 #include "common/i18n.h"
 
 namespace vinput::cli::config {
@@ -14,7 +14,7 @@ void RegisterInitCommands(CLI::App &app, CliAction *action) {
   init->add_flag("-f,--force", *force, _("Overwrite existing config"));
   init->callback([action, force]() {
     *action = [force](Formatter &fmt, const CliContext &ctx) {
-      return RunInit(*force, fmt, ctx);
+      return RunConfigInit(*force, fmt, ctx);
     };
   });
 }

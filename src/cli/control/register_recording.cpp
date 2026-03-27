@@ -2,8 +2,8 @@
 
 #include <CLI/CLI.hpp>
 
-#include "cli/command_recording.h"
 #include "cli/control/action.h"
+#include "cli/control/recording_actions.h"
 #include "common/i18n.h"
 
 namespace vinput::cli::control {
@@ -16,7 +16,7 @@ void RegisterRecordingCommands(CLI::App &app, CliAction *action) {
   auto *start = recording->add_subcommand("start", _("Start recording"));
   start->callback([action]() {
     *action = [](Formatter &fmt, const CliContext &ctx) {
-      return RunRecordingStart(fmt, ctx);
+      return RunRecordingControlStart(fmt, ctx);
     };
   });
 
@@ -27,7 +27,7 @@ void RegisterRecordingCommands(CLI::App &app, CliAction *action) {
                    _("Scene id (default: active scene)"));
   stop->callback([action, stopSceneId]() {
     *action = [stopSceneId](Formatter &fmt, const CliContext &ctx) {
-      return RunRecordingStop(*stopSceneId, fmt, ctx);
+      return RunRecordingControlStop(*stopSceneId, fmt, ctx);
     };
   });
 
@@ -38,7 +38,7 @@ void RegisterRecordingCommands(CLI::App &app, CliAction *action) {
                      _("Scene id (default: active scene)"));
   toggle->callback([action, toggleSceneId]() {
     *action = [toggleSceneId](Formatter &fmt, const CliContext &ctx) {
-      return RunRecordingToggle(*toggleSceneId, fmt, ctx);
+      return RunRecordingControlToggle(*toggleSceneId, fmt, ctx);
     };
   });
 }

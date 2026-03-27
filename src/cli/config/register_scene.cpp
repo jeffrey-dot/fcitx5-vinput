@@ -2,8 +2,8 @@
 
 #include <CLI/CLI.hpp>
 
-#include "cli/command_scene.h"
 #include "cli/config/action.h"
+#include "cli/config/scene_actions.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"
 
@@ -17,7 +17,7 @@ void RegisterSceneCommands(CLI::App &app, CliAction *action) {
   list->alias("ls");
   list->callback([action]() {
     *action = [](Formatter &fmt, const CliContext &ctx) {
-      return RunSceneList(fmt, ctx);
+      return RunSceneConfigList(fmt, ctx);
     };
   });
 
@@ -44,9 +44,10 @@ void RegisterSceneCommands(CLI::App &app, CliAction *action) {
       ->default_val(vinput::scene::kDefaultTimeoutMs);
   add->callback([action, addState]() {
     *action = [addState](Formatter &fmt, const CliContext &ctx) {
-      return RunSceneAdd(addState->id, addState->label, addState->prompt,
-                         addState->providerId, addState->model,
-                         addState->candidates, addState->timeoutMs, fmt, ctx);
+      return RunSceneConfigAdd(addState->id, addState->label,
+                               addState->prompt, addState->providerId,
+                               addState->model, addState->candidates,
+                               addState->timeoutMs, fmt, ctx);
     };
   });
 
@@ -55,7 +56,7 @@ void RegisterSceneCommands(CLI::App &app, CliAction *action) {
   use->add_option("id", *useId, _("Scene id"))->required();
   use->callback([action, useId]() {
     *action = [useId](Formatter &fmt, const CliContext &ctx) {
-      return RunSceneUse(*useId, fmt, ctx);
+      return RunSceneConfigUse(*useId, fmt, ctx);
     };
   });
 
@@ -65,7 +66,7 @@ void RegisterSceneCommands(CLI::App &app, CliAction *action) {
   remove->add_option("id", *removeId, _("Scene id"))->required();
   remove->callback([action, removeId]() {
     *action = [removeId](Formatter &fmt, const CliContext &ctx) {
-      return RunSceneRemove(*removeId, false, fmt, ctx);
+      return RunSceneConfigRemove(*removeId, false, fmt, ctx);
     };
   });
 }

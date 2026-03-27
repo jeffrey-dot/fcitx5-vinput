@@ -24,8 +24,11 @@ add_executable(vinput
     utils/editor_utils.cpp
     control/register.cpp
     control/register_recording.cpp
+    control/recording_actions.cpp
     config/asr_actions.cpp
+    config/config_actions.cpp
     config/device_actions.cpp
+    config/init_actions.cpp
     config/llm_actions.cpp
     config/register.cpp
     config/register_asr.cpp
@@ -34,10 +37,7 @@ add_executable(vinput
     config/register_init.cpp
     config/register_llm.cpp
     config/register_scene.cpp
-    command_recording.cpp
-    command_init.cpp
-    command_scene.cpp
-    command_config.cpp
+    config/scene_actions.cpp
     dbus_client.cpp
     ${CMAKE_SOURCE_DIR}/src/common/pipewire_device.cpp
     ${CMAKE_SOURCE_DIR}/src/common/model_manager.cpp
