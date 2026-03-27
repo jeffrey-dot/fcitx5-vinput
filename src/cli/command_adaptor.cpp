@@ -56,7 +56,7 @@ int RunAdaptorListAvailable(Formatter &fmt, const CliContext &ctx) {
   const auto registry_urls = ResolveLlmAdaptorRegistryUrls(config);
   if (registry_urls.empty()) {
     fmt.PrintError(
-        _("No LLM adaptor registry sources configured. Edit config.json and set registry.llmAdaptors."));
+        _("No LLM adaptor registry base URLs configured. Edit config.json and set registry.base_urls."));
     return 1;
   }
 
@@ -117,7 +117,7 @@ int RunAdaptorInstall(const std::string &id, Formatter &fmt,
   const auto registry_urls = ResolveLlmAdaptorRegistryUrls(config);
   if (registry_urls.empty()) {
     fmt.PrintError(
-        _("No LLM adaptor registry sources configured. Edit config.json and set registry.llmAdaptors."));
+        _("No LLM adaptor registry base URLs configured. Edit config.json and set registry.base_urls."));
     return 1;
   }
 

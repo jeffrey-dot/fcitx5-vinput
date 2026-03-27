@@ -4,8 +4,8 @@
 
 namespace vinput::config {
 
-// Dotpath access for extra.* (config.json) paths
-// Example: "extra.active_model" → reads/writes config.json ["active_model"]
+// Dotpath access for extra.* (config.json) paths.
+// Example: "extra.global.capture_device"
 bool GetConfigValue(const std::string& dotpath, std::string* value, std::string* error);
 bool SetConfigValue(const std::string& dotpath, const std::string& value, std::string* error);
 

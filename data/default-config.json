@@ -1,90 +1,15 @@
 {
-  "version": 3,
-  "capture_device": "default",
+  "version": 1,
   "registry": {
-    "models": [
-      {
-        "name": "github",
-        "urls": [
-          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/models.json"
-        ]
-      },
-      {
-        "name": "gh-proxy",
-        "urls": [
-          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/models.json"
-        ]
-      },
-      {
-        "name": "ghfast",
-        "urls": [
-          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/models.json"
-        ]
-      }
-    ],
-    "asr_providers": [
-      {
-        "name": "github",
-        "urls": [
-          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/asr-providers.json"
-        ]
-      },
-      {
-        "name": "gh-proxy",
-        "urls": [
-          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/asr-providers.json"
-        ]
-      },
-      {
-        "name": "ghfast",
-        "urls": [
-          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/asr-providers.json"
-        ]
-      }
-    ],
-    "llm_adaptors": [
-      {
-        "name": "github",
-        "urls": [
-          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/llm-adaptors.json"
-        ]
-      },
-      {
-        "name": "gh-proxy",
-        "urls": [
-          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/llm-adaptors.json"
-        ]
-      },
-      {
-        "name": "ghfast",
-        "urls": [
-          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/registry/llm-adaptors.json"
-        ]
-      }
-    ],
-    "i18n": [
-      {
-        "locale": "zh_CN",
-        "urls": [
-          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/zh_CN.json",
-          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/zh_CN.json",
-          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/zh_CN.json"
-        ]
-      },
-      {
-        "locale": "en_US",
-        "urls": [
-          "https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/en_US.json",
-          "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/en_US.json",
-          "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main/i18n/en_US.json"
-        ]
-      }
+    "base_urls": [
+      "https://raw.githubusercontent.com/xifan2333/vinput-registry/main",
+      "https://gh-proxy.com/https://raw.githubusercontent.com/xifan2333/vinput-registry/main",
+      "https://ghfast.top/https://raw.githubusercontent.com/xifan2333/vinput-registry/main"
     ]
   },
-  "default_language": "zh",
-  "llm": {
-    "providers": [],
-    "adaptors": []
+  "global": {
+    "default_language": "zh",
+    "capture_device": "default"
   },
   "asr": {
     "active_provider": "sherpa-onnx",
@@ -96,10 +21,13 @@
       {
         "name": "sherpa-onnx",
         "type": "local",
-        "builtin": true,
         "timeout_ms": 15000
       }
     ]
+  },
+  "llm": {
+    "providers": [],
+    "adaptors": []
   },
   "scenes": {
     "active_scene": "__raw__",

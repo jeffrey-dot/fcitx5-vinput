@@ -1114,7 +1114,7 @@ void MainWindow::loadConfigToUi() {
     comboDevice->addItem(label, d.name);
   }
 
-  QString active_device = QString::fromStdString(currentConfig.captureDevice);
+  QString active_device = QString::fromStdString(currentConfig.global.captureDevice);
   if (active_device.isEmpty())
     active_device = "default";
 
@@ -1132,9 +1132,12 @@ void MainWindow::loadConfigToUi() {
   comboDevice->setCurrentIndex(active_index == -1 ? 0 : active_index);
 
   // Hotwords
-  editHotwordsFile->setText(QString::fromStdString(currentConfig.hotwordsFile));
-  if (!currentConfig.hotwordsFile.empty()) {
-    QFile f(QString::fromStdString(currentConfig.hotwordsFile));
+  const AsrProvider *local_provider = ResolvePreferredLocalAsrProvider(currentConfig);
+  const std::string hotwords_file =
+      local_provider ? local_provider->hotwordsFile : std::string{};
+  editHotwordsFile->setText(QString::fromStdString(hotwords_file));
+  if (!hotwords_file.empty()) {
+    QFile f(QString::fromStdString(hotwords_file));
     if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
       textHotwords->setPlainText(QTextStream(&f).readAll());
     }
@@ -1151,11 +1154,18 @@ void MainWindow::onSaveClicked() {
   QString device_value = comboDevice->currentData().toString();
   if (device_value.isEmpty())
     device_value = comboDevice->currentText();
-  currentConfig.captureDevice = device_value.toStdString();
+  currentConfig.global.captureDevice = device_value.toStdString();
 
-  currentConfig.hotwordsFile = editHotwordsFile->text().trimmed().toStdString();
-  if (!currentConfig.hotwordsFile.empty()) {
-    QFile f(QString::fromStdString(currentConfig.hotwordsFile));
+  const std::string hotwords_file =
+      editHotwordsFile->text().trimmed().toStdString();
+  for (auto &provider : currentConfig.asr.providers) {
+    if (provider.type == vinput::asr::kLocalProviderType) {
+      provider.hotwordsFile = hotwords_file;
+      break;
+    }
+  }
+  if (!hotwords_file.empty()) {
+    QFile f(QString::fromStdString(hotwords_file));
     if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
       QTextStream(&f) << textHotwords->toPlainText();
     }

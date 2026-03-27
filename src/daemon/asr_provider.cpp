@@ -63,8 +63,8 @@ public:
     model_type_ = model_info.model_type;
 
     AsrConfig asr_config;
-    asr_config.language = config.defaultLanguage;
-    asr_config.hotwords_file = config.hotwordsFile;
+    asr_config.language = config.global.defaultLanguage;
+    asr_config.hotwords_file = provider->hotwordsFile;
     asr_config.normalize_audio = config.asr.normalizeAudio;
     asr_config.vad_enabled = config.asr.vad.enabled;
     asr_config.vad_model_path = VINPUT_VAD_MODEL_PATH;

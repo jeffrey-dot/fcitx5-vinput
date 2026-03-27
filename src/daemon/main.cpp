@@ -88,7 +88,7 @@ void LogActiveAsrProvider(const CoreConfig &config) {
     fprintf(stderr,
             "vinput-daemon: ASR provider=%s type=%s model=%s lang=%s\n",
             provider->name.c_str(), provider->type.c_str(),
-            provider->model.c_str(), config.defaultLanguage.c_str());
+            provider->model.c_str(), config.global.defaultLanguage.c_str());
     return;
   }
 
@@ -629,7 +629,7 @@ int main(int argc, char *argv[]) {
     current_is_command = false;
     current_selected_text.clear();
     auto runtime_settings = LoadCoreConfig();
-    capture.SetTargetObject(runtime_settings.captureDevice);
+    capture.SetTargetObject(runtime_settings.global.captureDevice);
     std::string error;
     if (!capture.BeginRecording(&error)) {
       std::string message = "Failed to start recording.";
@@ -655,7 +655,7 @@ int main(int argc, char *argv[]) {
     current_is_command = true;
     current_selected_text = selected_text;
     auto runtime_settings = LoadCoreConfig();
-    capture.SetTargetObject(runtime_settings.captureDevice);
+    capture.SetTargetObject(runtime_settings.global.captureDevice);
     std::string error;
     if (!capture.BeginRecording(&error)) {
       std::string message = "Failed to start command recording.";

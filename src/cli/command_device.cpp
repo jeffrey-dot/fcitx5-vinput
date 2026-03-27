@@ -10,7 +10,7 @@
 
 int RunDeviceList(Formatter &fmt, const CliContext &ctx) {
   CoreConfig config = LoadCoreConfig();
-  std::string active_device = config.captureDevice;
+  std::string active_device = config.global.captureDevice;
 
   auto devices = vinput::pw::EnumerateAudioSources();
   if (devices.empty()) {
@@ -73,7 +73,7 @@ int RunDeviceUse(const std::string &name, Formatter &fmt,
     }
   }
 
-  config.captureDevice = name;
+  config.global.captureDevice = name;
 
   if (!SaveConfigOrFail(config, fmt)) return 1;
 

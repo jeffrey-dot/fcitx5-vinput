@@ -76,20 +76,12 @@ static bool SetTypedConfigValue(CoreConfig *config,
                                 const std::vector<std::string> &keys,
                                 const std::string &value,
                                 std::string *error) {
-  if (PathEquals(keys, {"capture_device"})) {
-    config->captureDevice = value;
+  if (PathEquals(keys, {"global", "capture_device"})) {
+    config->global.captureDevice = value;
     return true;
   }
-  if (PathEquals(keys, {"model_base_dir"})) {
-    config->modelBaseDir = value;
-    return true;
-  }
-  if (PathEquals(keys, {"default_language"})) {
-    config->defaultLanguage = value;
-    return true;
-  }
-  if (PathEquals(keys, {"hotwords_file"})) {
-    config->hotwordsFile = value;
+  if (PathEquals(keys, {"global", "default_language"})) {
+    config->global.defaultLanguage = value;
     return true;
   }
   if (PathEquals(keys, {"scenes", "active_scene"})) {
@@ -118,20 +110,12 @@ static bool SetTypedConfigValue(CoreConfig *config,
 static bool GetTypedConfigValue(const CoreConfig &config,
                                 const std::vector<std::string> &keys,
                                 std::string *value, std::string *error) {
-  if (PathEquals(keys, {"capture_device"})) {
-    *value = config.captureDevice;
+  if (PathEquals(keys, {"global", "capture_device"})) {
+    *value = config.global.captureDevice;
     return true;
   }
-  if (PathEquals(keys, {"model_base_dir"})) {
-    *value = config.modelBaseDir;
-    return true;
-  }
-  if (PathEquals(keys, {"default_language"})) {
-    *value = config.defaultLanguage;
-    return true;
-  }
-  if (PathEquals(keys, {"hotwords_file"})) {
-    *value = config.hotwordsFile;
+  if (PathEquals(keys, {"global", "default_language"})) {
+    *value = config.global.defaultLanguage;
     return true;
   }
   if (PathEquals(keys, {"scenes", "active_scene"})) {

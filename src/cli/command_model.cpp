@@ -65,7 +65,7 @@ int RunModelList(bool available, Formatter& fmt, const CliContext& ctx) {
 
     // Remote listing
     if (registry_urls.empty()) {
-        fmt.PrintError(_("No model registry sources configured. Edit config.json and set registry.models."));
+        fmt.PrintError(_("No model registry base URLs configured. Edit config.json and set registry.base_urls."));
         return 1;
     }
 
@@ -132,7 +132,7 @@ int RunModelInstall(const std::string& name, Formatter& fmt, const CliContext& c
     const auto registry_urls = ResolveModelRegistryUrls(config);
 
     if (registry_urls.empty()) {
-        fmt.PrintError(_("No model registry sources configured. Edit config.json and set registry.models."));
+        fmt.PrintError(_("No model registry base URLs configured. Edit config.json and set registry.base_urls."));
         return 1;
     }
 

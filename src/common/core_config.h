@@ -32,35 +32,21 @@ struct AsrProvider {
   std::string type;
   std::string model;
   std::string command;
+  std::string hotwordsFile;
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
   int timeoutMs = 0;
 };
 
-struct RegistrySource {
-  std::string name;
-  std::vector<std::string> urls;
-};
-
-struct RegistryI18nSource {
-  std::string locale;
-  std::vector<std::string> urls;
-};
-
 struct CoreConfig {
   int version = 0;
-  std::string captureDevice;
-  std::string modelBaseDir;
   struct Registry {
-    std::vector<RegistrySource> models;
-    std::vector<RegistrySource> asrProviders;
-    std::vector<RegistrySource> llmAdaptors;
-    std::vector<RegistryI18nSource> i18n;
+    std::vector<std::string> baseUrls;
   } registry;
-
-  std::string defaultLanguage;
-
-  std::string hotwordsFile;
+  struct Global {
+    std::string defaultLanguage;
+    std::string captureDevice;
+  } global;
 
   struct Llm {
     std::vector<LlmProvider> providers;

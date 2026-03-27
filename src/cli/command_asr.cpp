@@ -100,6 +100,18 @@ std::filesystem::path ResolveEditableScriptPath(const AsrProvider &provider) {
   return {};
 }
 
+void RestartDaemonAfterAsrChange(Formatter &fmt) {
+  const int restart_result = vinput::cli::SystemctlRestart();
+  if (restart_result != 0) {
+    fmt.PrintWarning(vinput::str::FmtStr(
+        _("ASR config updated, but daemon restart failed (exit code: %d)."),
+        restart_result));
+    fmt.PrintInfo(_("Restart the daemon manually to apply the new provider."));
+    return;
+  }
+  fmt.PrintInfo(_("Daemon restarted to apply ASR changes."));
+}
+
 }  // namespace
 
 int RunAsrList(Formatter &fmt, const CliContext &ctx) {
@@ -150,7 +162,7 @@ int RunAsrListAvailable(Formatter &fmt, const CliContext &ctx) {
   const auto registry_urls = ResolveAsrProviderRegistryUrls(config);
   if (registry_urls.empty()) {
     fmt.PrintError(
-        _("No ASR provider registry sources configured. Edit config.json and set registry.asrProviders."));
+        _("No ASR provider registry base URLs configured. Edit config.json and set registry.base_urls."));
     return 1;
   }
 
@@ -272,6 +284,7 @@ int RunAsrAdd(const std::string &name, const std::string &type,
       vinput::str::FmtStr(_("ASR provider '%s' added."), name));
   fmt.PrintInfo(
       vinput::str::FmtStr(_("Run `vinput asr use %s` to activate"), name));
+  RestartDaemonAfterAsrChange(fmt);
   return 0;
 }
 
@@ -283,7 +296,7 @@ int RunAsrInstall(const std::string &id, Formatter &fmt, const CliContext &ctx) 
   const auto registry_urls = ResolveAsrProviderRegistryUrls(config);
   if (registry_urls.empty()) {
     fmt.PrintError(
-        _("No ASR provider registry sources configured. Edit config.json and set registry.asrProviders."));
+        _("No ASR provider registry base URLs configured. Edit config.json and set registry.base_urls."));
     return 1;
   }
 
@@ -324,6 +337,7 @@ int RunAsrInstall(const std::string &id, Formatter &fmt, const CliContext &ctx) 
       _("ASR provider '%s' synchronized to local config."), id));
   fmt.PrintInfo(
       vinput::str::FmtStr(_("Local script path: %s"), script_path.string()));
+  RestartDaemonAfterAsrChange(fmt);
   return 0;
 }
 
@@ -363,12 +377,14 @@ int RunAsrRemove(const std::string &name, bool force, Formatter &fmt,
   }
 
   if (removing_active) {
+    RestartDaemonAfterAsrChange(fmt);
     fmt.PrintSuccess(vinput::str::FmtStr(
         _("ASR provider '%s' removed. Active provider is now '%s'."), name,
         config.asr.activeProvider));
     return 0;
   }
 
+  RestartDaemonAfterAsrChange(fmt);
   fmt.PrintSuccess(
       vinput::str::FmtStr(_("ASR provider '%s' removed."), name));
   return 0;
@@ -436,6 +452,7 @@ int RunAsrEdit(const std::string &name, Formatter &fmt, const CliContext &ctx) {
     return ret;
   }
 
+  RestartDaemonAfterAsrChange(fmt);
   fmt.PrintSuccess(vinput::str::FmtStr(
       _("Updated ASR provider script: %s"), script_path.string()));
   return 0;

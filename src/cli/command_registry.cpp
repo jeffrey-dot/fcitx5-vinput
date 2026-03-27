@@ -31,9 +31,11 @@ int RunRegistryStatus(Formatter &fmt, const CliContext &ctx) {
   NormalizeCoreConfig(&config);
 
   nlohmann::json i18n = nlohmann::json::array();
-  for (const auto &source : config.registry.i18n) {
-    auto obj = CacheStatusObject(vinput::registry::cache::I18nPath(source.locale));
-    obj["locale"] = source.locale;
+  const auto preferred_locale = vinput::registry::DetectPreferredLocale();
+  for (const auto &locale :
+       std::vector<std::string>{preferred_locale, std::string("en_US")}) {
+    auto obj = CacheStatusObject(vinput::registry::cache::I18nPath(locale));
+    obj["locale"] = locale;
     i18n.push_back(std::move(obj));
   }
 
@@ -102,8 +104,14 @@ int RunRegistrySync(Formatter &fmt, const CliContext &ctx) {
     }
   }
 
-  for (const auto &source : config.registry.i18n) {
-    vinput::registry::FetchI18nMap(source.locale, source.urls, &error);
+  const auto preferred_locale = vinput::registry::DetectPreferredLocale();
+  for (const auto &locale :
+       std::vector<std::string>{preferred_locale, std::string("en_US")}) {
+    const auto urls = ResolveRegistryI18nUrls(config, locale);
+    if (urls.empty()) {
+      continue;
+    }
+    vinput::registry::FetchI18nMap(locale, urls, &error);
     if (!error.empty()) {
       fmt.PrintError(error);
       return 1;
