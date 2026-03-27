@@ -1,5 +1,5 @@
 #include "cli/command_scene.h"
-#include "cli/cli_helpers.h"
+#include "cli/utils/cli_helpers.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"

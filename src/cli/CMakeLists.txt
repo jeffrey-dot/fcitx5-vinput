@@ -20,25 +20,23 @@ pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 
 add_executable(vinput
     main.cpp
-    formatter.cpp
-    progress.cpp
-    editor_utils.cpp
+    utils/formatter.cpp
+    utils/editor_utils.cpp
+    config/asr_actions.cpp
+    config/llm_actions.cpp
+    config/register.cpp
+    config/register_asr.cpp
+    config/register_config.cpp
+    config/register_device.cpp
+    config/register_init.cpp
+    config/register_llm.cpp
+    config/register_scene.cpp
     command_init.cpp
-    command_registry.cpp
-    command_model.cpp
     command_scene.cpp
     command_config.cpp
-    command_llm.cpp
-    command_asr.cpp
-    command_hotword.cpp
     command_device.cpp
-    command_daemon.cpp
-    command_status.cpp
-    command_recording.cpp
-    command_adaptor.cpp
-    dbus_client.cpp
-    systemd_client.cpp
     ${CMAKE_SOURCE_DIR}/src/common/pipewire_device.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/model_manager.cpp
 )
 
 target_include_directories(vinput PRIVATE
@@ -47,11 +45,8 @@ target_include_directories(vinput PRIVATE
 )
 
 target_link_libraries(vinput PRIVATE
-    vinput-common
+    vinput-config
     CLI11::CLI11
-    CURL::libcurl
-    ${SDBUS_LIBRARIES}
-    LibArchive::LibArchive
     ${PIPEWIRE_LIBRARIES}
 )
 

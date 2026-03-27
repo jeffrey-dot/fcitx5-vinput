@@ -1,5 +1,5 @@
 #pragma once
-#include "cli/formatter.h"
+#include "cli/utils/formatter.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/postprocess_scene.h"

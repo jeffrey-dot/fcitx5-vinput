@@ -1,4 +1,4 @@
-#include "cli/editor_utils.h"
+#include "cli/utils/editor_utils.h"
 
 #include <cctype>
 #include <cstdlib>

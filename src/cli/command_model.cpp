@@ -1,5 +1,5 @@
 #include "cli/command_model.h"
-#include "cli/cli_helpers.h"
+#include "cli/utils/cli_helpers.h"
 #include "cli/systemd_client.h"
 #include "common/i18n.h"
 #include "cli/progress.h"

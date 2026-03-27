@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-#include "cli/editor_utils.h"
+#include "cli/utils/editor_utils.h"
 #include "common/i18n.h"
 #include "common/config/config_router.h"
 

@@ -1,4 +1,4 @@
-#include "cli/formatter.h"
+#include "cli/utils/formatter.h"
 
 #include <algorithm>
 #include <iostream>

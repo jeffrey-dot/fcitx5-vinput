@@ -1,5 +1,5 @@
 #include "cli/command_device.h"
-#include "cli/cli_helpers.h"
+#include "cli/utils/cli_helpers.h"
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/pipewire_device.h"

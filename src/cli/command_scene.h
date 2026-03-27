@@ -1,6 +1,6 @@
 #pragma once
-#include "cli/cli_context.h"
-#include "cli/formatter.h"
+#include "cli/utils/cli_context.h"
+#include "cli/utils/formatter.h"
 #include <string>
 
 int RunSceneList(Formatter &fmt, const CliContext &ctx);

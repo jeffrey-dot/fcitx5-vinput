@@ -5,7 +5,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "cli/cli_helpers.h"
+#include "cli/utils/cli_helpers.h"
 #include "common/i18n.h"
 #include "common/config/core_config.h"
 #include "common/utils/string_utils.h"

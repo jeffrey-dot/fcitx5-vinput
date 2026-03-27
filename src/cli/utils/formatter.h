@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
-#include "cli/cli_context.h"
+#include "cli/utils/cli_context.h"
 
 class Formatter {
 public:

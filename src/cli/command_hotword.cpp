@@ -1,6 +1,6 @@
 #include "cli/command_hotword.h"
-#include "cli/cli_helpers.h"
-#include "cli/editor_utils.h"
+#include "cli/utils/cli_helpers.h"
+#include "cli/utils/editor_utils.h"
 #include "common/i18n.h"
 #include "common/config/core_config.h"
 

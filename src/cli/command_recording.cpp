@@ -1,5 +1,5 @@
 #include "cli/command_recording.h"
-#include "cli/cli_helpers.h"
+#include "cli/utils/cli_helpers.h"
 #include "cli/dbus_client.h"
 #include "common/dbus_interface.h"
 #include "common/i18n.h"
