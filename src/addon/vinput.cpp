@@ -1,9 +1,10 @@
 #include "vinput.h"
 #include "notifier_dbus_object.h"
-#include "common/core_config.h"
+#include "common/config/core_config.h"
 #include "common/dbus_interface.h"
 #include "common/i18n.h"
-#include "common/path_utils.h"
+#include "common/utils/file_utils.h"
+#include "common/utils/path_utils.h"
 #include "common/postprocess_scene.h"
 
 #include <dbus_public.h>
@@ -19,17 +20,13 @@ using namespace vinput::dbus;
 namespace {
 // Auto-install systemd service when running inside flatpak
 void autoInstallSystemdServiceInFlatpak() {
-  if (!vinput::path::isInsideFlatpak())
+  if (!vinput::path::IsInsideFlatpak())
     return;
 
-  const char *home = getenv("HOME");
-  if (!home)
+  const std::filesystem::path dest = vinput::path::DaemonServiceUnitInstallPath();
+  if (dest.empty()) {
     return;
-
-  // dest: install to ~/.config/systemd/user/vinput-daemon.service
-  const std::filesystem::path dest =
-      std::filesystem::path(home) / ".config" / "systemd" / "user" /
-      "vinput-daemon.service";
+  }
 
   std::error_code ec_exists;
   bool destExists = std::filesystem::exists(dest, ec_exists);
@@ -42,7 +39,7 @@ void autoInstallSystemdServiceInFlatpak() {
     return;
 
   // src: is bundled inside the flatpak
-  const char *src = "/app/addons/Vinput/share/systemd/user/vinput-daemon.service";
+  const auto src = vinput::path::DaemonServiceUnitTemplatePath();
   std::ifstream src_f(src);
   if (!src_f) {
     FCITX_LOG(Error) << "vinput: service file not found at " << src;
@@ -55,22 +52,23 @@ void autoInstallSystemdServiceInFlatpak() {
   auto pos = content.find("ExecStart=");
   if (pos != std::string::npos) {
     auto end = content.find('\n', pos);
+    const auto daemon_path = vinput::path::DaemonExecutablePath();
     content.replace(
         pos, end - pos,
-        "ExecStart=flatpak run --command=/app/addons/Vinput/bin/vinput-daemon org.fcitx.Fcitx5\n"
-        "ExecStop=pkill -INT vinput-daemon");
+        "ExecStart=flatpak run --command=" + daemon_path.string() +
+            " org.fcitx.Fcitx5\n"
+            "ExecStop=pkill -INT vinput-daemon");
   }
 
-  std::error_code ec;
-  std::filesystem::create_directories(dest.parent_path(), ec);
-  if (ec) {
-    FCITX_LOG(Error) << "vinput: failed to create systemd user dir: "
-                     << ec.message();
+  std::string file_error;
+  if (!vinput::file::EnsureParentDirectory(dest, &file_error)) {
+    FCITX_LOG(Error) << "vinput: failed to prepare systemd user dir: "
+                     << file_error;
     return;
   }
-  std::ofstream dst_f(dest);
-  if (!(dst_f << content)) {
+  if (!vinput::file::AtomicWriteTextFile(dest, content, &file_error)) {
     FCITX_LOG(Error) << "vinput: failed to write service file to " << dest;
+    FCITX_LOG(Error) << "vinput: write error: " << file_error;
     return;
   }
   FCITX_LOG(Info) << "vinput: installed vinput-daemon.service to " << dest;

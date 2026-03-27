@@ -19,7 +19,7 @@
     },
     "providers": [
       {
-        "name": "sherpa-onnx",
+        "id": "sherpa-onnx",
         "type": "local",
         "timeout_ms": 15000
       }
