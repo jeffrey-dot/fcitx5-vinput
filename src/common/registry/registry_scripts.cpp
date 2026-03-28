@@ -10,6 +10,7 @@
 #include "common/utils/downloader.h"
 #include "common/utils/path_utils.h"
 #include "common/registry/registry_cache.h"
+#include "common/registry/registry_fetch.h"
 
 namespace vinput::script {
 
@@ -118,12 +119,9 @@ CommandAsrProvider *GetCommandAsrProvider(AsrProvider *provider) {
   return provider ? std::get_if<CommandAsrProvider>(provider) : nullptr;
 }
 
-} // namespace
-
-std::vector<RegistryEntry> FetchRegistry(Kind kind,
-                                         const std::vector<std::string> &urls,
-                                         std::string *error,
-                                         std::string *resolved_registry_url) {
+std::vector<RegistryEntry> FetchRegistryImpl(
+    const CoreConfig *config, Kind kind, const std::vector<std::string> &urls,
+    std::string *error, std::string *resolved_registry_url) {
   if (urls.empty()) {
     if (error) {
       *error = "no script registry URLs configured";
@@ -136,8 +134,8 @@ std::vector<RegistryEntry> FetchRegistry(Kind kind,
   options.timeout_seconds = 30;
   options.max_bytes = 4 * 1024 * 1024;
   vinput::download::Result result;
-  if (!vinput::registry::cache::FetchText(
-          urls,
+  if (!vinput::registry::FetchRegistryText(
+          config, urls,
           kind == Kind::kAsrProvider
               ? vinput::registry::cache::AsrProviderRegistryPath()
               : vinput::registry::cache::LlmAdaptorRegistryPath(),
@@ -152,6 +150,22 @@ std::vector<RegistryEntry> FetchRegistry(Kind kind,
     *resolved_registry_url = result.resolved_url;
   }
   return ParseRegistryJson(content, error);
+}
+
+} // namespace
+
+std::vector<RegistryEntry> FetchRegistry(Kind kind,
+                                         const std::vector<std::string> &urls,
+                                         std::string *error,
+                                         std::string *resolved_registry_url) {
+  return FetchRegistryImpl(nullptr, kind, urls, error, resolved_registry_url);
+}
+
+std::vector<RegistryEntry> FetchRegistry(const CoreConfig &config, Kind kind,
+                                         const std::vector<std::string> &urls,
+                                         std::string *error,
+                                         std::string *resolved_registry_url) {
+  return FetchRegistryImpl(&config, kind, urls, error, resolved_registry_url);
 }
 
 std::filesystem::path DefaultLocalScriptPath(Kind kind, std::string_view id) {

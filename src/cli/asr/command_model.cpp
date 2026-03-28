@@ -238,10 +238,11 @@ int RunModelInfo(const std::string& id, Formatter& fmt, const CliContext& ctx) {
     auto config = LoadCoreConfig();
     NormalizeCoreConfig(&config);
     auto base_dir = ResolveModelBaseDir(config);
-    auto model_dir = base_dir / id;
+    ModelManager mgr(base_dir.string());
+    auto model_dir = mgr.ModelDir(id);
     auto json_path = model_dir / "vinput-model.json";
 
-    if (!std::filesystem::exists(json_path)) {
+    if (model_dir.empty() || !std::filesystem::exists(json_path)) {
         fmt.PrintError(vinput::str::FmtStr(_("Model '%s' not found at: %s"), id, json_path.string()));
         return 1;
     }

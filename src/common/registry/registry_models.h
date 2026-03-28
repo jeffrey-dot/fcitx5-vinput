@@ -21,6 +21,8 @@ struct RemoteModelEntry {
   bool supports_hotwords() const { return vinput_model.value("supports_hotwords", false); }
 };
 
+struct CoreConfig;
+
 struct InstallProgress {
   uint64_t downloaded_bytes = 0;
   uint64_t total_bytes = 0;
@@ -39,12 +41,21 @@ public:
   std::vector<RemoteModelEntry> FetchRegistry(
       const std::vector<std::string> &registry_urls, std::string *error,
       std::string *resolved_registry_url = nullptr) const;
+  std::vector<RemoteModelEntry> FetchRegistry(
+      const CoreConfig &config, const std::vector<std::string> &registry_urls,
+      std::string *error,
+      std::string *resolved_registry_url = nullptr) const;
 
   // Download and install a model
   bool InstallModel(const std::string &registry_url,
                     const std::string &model_id, ProgressCallback progress_cb,
                     std::string *error) const;
   bool InstallModel(const std::vector<std::string> &registry_urls,
+                    const std::string &model_id, ProgressCallback progress_cb,
+                    std::string *error,
+                    std::string *resolved_registry_url = nullptr) const;
+  bool InstallModel(const CoreConfig &config,
+                    const std::vector<std::string> &registry_urls,
                     const std::string &model_id, ProgressCallback progress_cb,
                     std::string *error,
                     std::string *resolved_registry_url = nullptr) const;

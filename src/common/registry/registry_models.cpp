@@ -16,6 +16,8 @@
 #include "common/utils/downloader.h"
 #include "common/utils/file_utils.h"
 #include "common/registry/registry_cache.h"
+#include "common/asr/model_manager.h"
+#include "common/registry/registry_fetch.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -80,6 +82,35 @@ std::vector<RemoteModelEntry> ParseRegistryJson(const std::string &content,
   return entries;
 }
 
+std::vector<RemoteModelEntry> FetchRegistryImpl(
+    const CoreConfig *config, const std::vector<std::string> &registry_urls,
+    std::string *error, std::string *resolved_registry_url) {
+  if (registry_urls.empty()) {
+    if (error) *error = "no registry URLs configured";
+    return {};
+  }
+
+  std::string content;
+  vinput::download::Options options;
+  options.timeout_seconds = 30;
+  options.max_bytes = 4 * 1024 * 1024;
+
+  vinput::download::Result download_result;
+  if (!vinput::registry::FetchRegistryText(
+          config, registry_urls, vinput::registry::cache::ModelRegistryPath(),
+          options, &content, &download_result, error)) {
+    if (resolved_registry_url) {
+      resolved_registry_url->clear();
+    }
+    return {};
+  }
+
+  if (resolved_registry_url) {
+    *resolved_registry_url = download_result.resolved_url;
+  }
+  return ParseRegistryJson(content, error);
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -98,30 +129,13 @@ ModelRepository::FetchRegistry(const std::string &registry_url,
 std::vector<RemoteModelEntry> ModelRepository::FetchRegistry(
     const std::vector<std::string> &registry_urls, std::string *error,
     std::string *resolved_registry_url) const {
-  if (registry_urls.empty()) {
-    if (error) *error = "no registry URLs configured";
-    return {};
-  }
+  return FetchRegistryImpl(nullptr, registry_urls, error, resolved_registry_url);
+}
 
-  std::string content;
-  vinput::download::Options options;
-  options.timeout_seconds = 30;
-  options.max_bytes = 4 * 1024 * 1024;
-
-  vinput::download::Result download_result;
-  if (!vinput::registry::cache::FetchText(
-          registry_urls, vinput::registry::cache::ModelRegistryPath(), options,
-          &content, &download_result, error)) {
-    if (resolved_registry_url) {
-      resolved_registry_url->clear();
-    }
-    return {};
-  }
-
-  if (resolved_registry_url) {
-    *resolved_registry_url = download_result.resolved_url;
-  }
-  return ParseRegistryJson(content, error);
+std::vector<RemoteModelEntry> ModelRepository::FetchRegistry(
+    const CoreConfig &config, const std::vector<std::string> &registry_urls,
+    std::string *error, std::string *resolved_registry_url) const {
+  return FetchRegistryImpl(&config, registry_urls, error, resolved_registry_url);
 }
 
 bool ModelRepository::InstallModel(const std::string &registry_url,
@@ -137,10 +151,216 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
                                    ProgressCallback progress_cb,
                                    std::string *error,
                                    std::string *resolved_registry_url) const {
-  // Fetch registry
+  // Fetch registry without i18n refresh when config context is unavailable.
   std::string fetch_err;
   auto entries =
-      FetchRegistry(registry_urls, &fetch_err, resolved_registry_url);
+      FetchRegistryImpl(nullptr, registry_urls, &fetch_err, resolved_registry_url);
+  if (!fetch_err.empty()) {
+    if (error) *error = fetch_err;
+    return false;
+  }
+
+  // Find the requested model
+  const RemoteModelEntry *found = nullptr;
+  for (const auto &e : entries) {
+    if (e.id == model_id) {
+      found = &e;
+      break;
+    }
+  }
+  if (!found) {
+    if (error) *error = "model not found in registry: " + model_id;
+    return false;
+  }
+
+  // Ensure base_dir exists before mkdtemp
+  {
+    std::error_code mkdir_ec;
+    fs::create_directories(base_dir_, mkdir_ec);
+    if (mkdir_ec) {
+      if (error) *error = "failed to create model directory: " + mkdir_ec.message();
+      return false;
+    }
+  }
+
+  // Create temporary directory with random name to avoid symlink race
+  std::string tmp_template = (base_dir_ / ".tmp-XXXXXX").string();
+  char *tmp_result = mkdtemp(tmp_template.data());
+  if (!tmp_result) {
+    if (error) *error = "failed to create temp dir";
+    return false;
+  }
+  const fs::path tmp_dir = fs::path(tmp_result);
+  std::error_code ec;
+
+  // Determine archive filename from first URL
+  std::string archive_name = model_id + ".tar.gz";
+  {
+    auto pos = found->urls[0].rfind('/');
+    if (pos != std::string::npos && pos + 1 < found->urls[0].size()) {
+      archive_name = found->urls[0].substr(pos + 1);
+      // Strip query string if present
+      auto q = archive_name.find('?');
+      if (q != std::string::npos) archive_name = archive_name.substr(0, q);
+    }
+  }
+
+  const fs::path archive_path = tmp_dir / archive_name;
+
+  // Try each URL in order (fallback on failure)
+  vinput::download::Options download_options;
+  download_options.timeout_seconds = 600;
+  download_options.progress_cb = [progress_cb](
+                                     const vinput::download::Progress &progress) {
+    if (!progress_cb) {
+      return;
+    }
+    InstallProgress install_progress;
+    install_progress.downloaded_bytes = progress.downloaded_bytes;
+    install_progress.total_bytes = progress.total_bytes;
+    install_progress.speed_bps = progress.speed_bps;
+    progress_cb(install_progress);
+  };
+  vinput::download::Result download_result;
+  if (!vinput::download::DownloadFile(found->urls, archive_path,
+                                      download_options, &download_result)) {
+    fs::remove_all(tmp_dir, ec);
+    if (error) {
+      *error = download_result.error.empty() ? "download failed"
+                                             : download_result.error;
+    }
+    return false;
+  }
+
+  // Verify SHA256 (stub)
+  std::string verify_err;
+  if (!VerifySha256(archive_path, found->sha256, &verify_err)) {
+    fs::remove_all(tmp_dir, ec);
+    if (error) *error = verify_err;
+    return false;
+  }
+
+  // Extract
+  const fs::path extracted_dir = tmp_dir / "extracted";
+  fs::create_directories(extracted_dir, ec);
+  std::string extract_err;
+  if (!ExtractArchive(archive_path, extracted_dir, &extract_err)) {
+    fs::remove_all(tmp_dir, ec);
+    if (error) *error = extract_err;
+    return false;
+  }
+
+  // If archive extracted into a single top-level directory, flatten it
+  {
+    std::vector<fs::path> top_entries;
+    for (const auto &entry : fs::directory_iterator(extracted_dir)) {
+      top_entries.push_back(entry.path());
+    }
+    if (top_entries.size() == 1 && fs::is_directory(top_entries[0])) {
+      const fs::path single_dir = top_entries[0];
+      const fs::path flatten_tmp = tmp_dir / "flatten";
+      fs::rename(single_dir, flatten_tmp, ec);
+      if (!ec) {
+        for (const auto &entry : fs::directory_iterator(flatten_tmp)) {
+          fs::rename(entry.path(), extracted_dir / entry.path().filename(), ec);
+        }
+        fs::remove_all(flatten_tmp, ec);
+      }
+    }
+  }
+
+  if (!found->vinput_model.is_null() && !found->vinput_model.empty()) {
+    const fs::path json_path = extracted_dir / "vinput-model.json";
+    if (!found->vinput_model.is_object()) {
+      fs::remove_all(tmp_dir, ec);
+      if (error) *error = "registry field 'vinput_model' must be a JSON object";
+      return false;
+    }
+    std::string json_content = found->vinput_model.dump(2) + "\n";
+    std::string write_err;
+    if (!vinput::file::AtomicWriteTextFile(json_path, json_content, &write_err)) {
+      fs::remove_all(tmp_dir, ec);
+      if (error) *error = "failed to write vinput-model.json: " + write_err;
+      return false;
+    }
+  }
+
+  const fs::path relative_path = ModelManager::RelativePathForId(model_id);
+  if (relative_path.empty()) {
+    fs::remove_all(tmp_dir, ec);
+    if (error) *error = "invalid model id: " + model_id;
+    return false;
+  }
+  const fs::path dest_dir = base_dir_ / relative_path;
+  const fs::path backup_dir = tmp_dir / "previous-install";
+  std::error_code exists_ec;
+  const bool had_existing = fs::exists(dest_dir, exists_ec);
+  if (exists_ec) {
+    fs::remove_all(tmp_dir, ec);
+    if (error)
+      *error = "failed to inspect existing model installation: " +
+               exists_ec.message();
+    return false;
+  }
+
+  if (had_existing) {
+    fs::rename(dest_dir, backup_dir, ec);
+    if (ec) {
+      fs::remove_all(tmp_dir, ec);
+      if (error)
+        *error = "failed to stage existing model for replacement: " +
+                 ec.message();
+      return false;
+    }
+  }
+
+  fs::create_directories(dest_dir.parent_path(), ec);
+  if (ec) {
+    if (had_existing) {
+      std::error_code rollback_ec;
+      fs::rename(backup_dir, dest_dir, rollback_ec);
+    }
+    fs::remove_all(tmp_dir, ec);
+    if (error) {
+      *error = "failed to create model parent directory: " + ec.message();
+    }
+    return false;
+  }
+
+  fs::rename(extracted_dir, dest_dir, ec);
+  if (ec) {
+    std::string install_error =
+        "failed to activate new model installation: " + ec.message();
+    if (had_existing) {
+      std::error_code rollback_ec;
+      fs::rename(backup_dir, dest_dir, rollback_ec);
+      if (rollback_ec) {
+        if (error) {
+          *error = install_error + "; rollback also failed: " +
+                   rollback_ec.message();
+        }
+        return false;
+      }
+    }
+    fs::remove_all(tmp_dir, ec);
+    if (error) *error = install_error;
+    return false;
+  }
+
+  fs::remove_all(tmp_dir, ec);
+  return true;
+}
+
+bool ModelRepository::InstallModel(const CoreConfig &config,
+                                   const std::vector<std::string> &registry_urls,
+                                   const std::string &model_id,
+                                   ProgressCallback progress_cb,
+                                   std::string *error,
+                                   std::string *resolved_registry_url) const {
+  // Fetch registry
+  std::string fetch_err;
+  auto entries = FetchRegistry(config, registry_urls, &fetch_err,
+                               resolved_registry_url);
   if (!fetch_err.empty()) {
     if (error) *error = fetch_err;
     return false;
@@ -276,7 +496,13 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
 
   // Replace the destination by rename so the old model stays intact until
   // the new one is fully extracted and ready.
-  const fs::path dest_dir = base_dir_ / model_id;
+  const fs::path relative_path = ModelManager::RelativePathForId(model_id);
+  if (relative_path.empty()) {
+    fs::remove_all(tmp_dir, ec);
+    if (error) *error = "invalid model id: " + model_id;
+    return false;
+  }
+  const fs::path dest_dir = base_dir_ / relative_path;
   const fs::path backup_dir = tmp_dir / "previous-install";
   std::error_code exists_ec;
   const bool had_existing = fs::exists(dest_dir, exists_ec);
@@ -297,6 +523,19 @@ bool ModelRepository::InstallModel(const std::vector<std::string> &registry_urls
                  ec.message();
       return false;
     }
+  }
+
+  fs::create_directories(dest_dir.parent_path(), ec);
+  if (ec) {
+    if (had_existing) {
+      std::error_code rollback_ec;
+      fs::rename(backup_dir, dest_dir, rollback_ec);
+    }
+    fs::remove_all(tmp_dir, ec);
+    if (error) {
+      *error = "failed to create model parent directory: " + ec.message();
+    }
+    return false;
   }
 
   fs::rename(extracted_dir, dest_dir, ec);

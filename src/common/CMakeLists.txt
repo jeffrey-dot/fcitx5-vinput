@@ -22,6 +22,7 @@ add_library(vinput-common STATIC
     ${VINPUT_CONFIG_SOURCES}
     asr/recognition_result.cpp
     asr/model_manager.cpp
+    registry/registry_fetch.cpp
     registry/registry_models.cpp
     registry/registry_cache.cpp
     registry/registry_i18n.cpp

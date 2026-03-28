@@ -17,6 +17,39 @@ using json = nlohmann::json;
 
 namespace {
 
+std::vector<std::string> SplitModelId(std::string_view model_id) {
+  std::vector<std::string> segments;
+  std::size_t start = 0;
+  while (start <= model_id.size()) {
+    const std::size_t dot = model_id.find('.', start);
+    const std::size_t end =
+        dot == std::string_view::npos ? model_id.size() : dot;
+    if (end == start) {
+      return {};
+    }
+    std::string segment(model_id.substr(start, end - start));
+    if (segment.empty() || segment == "." || segment == ".." ||
+        segment.find('/') != std::string::npos ||
+        segment.find('\\') != std::string::npos) {
+      return {};
+    }
+    segments.push_back(std::move(segment));
+    if (dot == std::string_view::npos) {
+      break;
+    }
+    start = dot + 1;
+  }
+  return segments;
+}
+
+bool HasManagedModelPathDepth(const std::vector<std::string> &segments) {
+  std::size_t start_index = 0;
+  if (!segments.empty() && segments.front() == "model") {
+    start_index = 1;
+  }
+  return segments.size() >= start_index + 2;
+}
+
 bool IsPathWithinRoot(const fs::path &path, const fs::path &root) {
   auto path_it = path.begin();
   auto root_it = root.begin();
@@ -139,6 +172,61 @@ fs::path ModelManager::NormalizeBaseDir(const std::string &raw_path) {
   return vinput::path::ExpandUserPath(raw_path);
 }
 
+fs::path ModelManager::RelativePathForId(std::string_view model_id) {
+  const auto segments = SplitModelId(model_id);
+  if (segments.empty() || !HasManagedModelPathDepth(segments)) {
+    return {};
+  }
+
+  std::size_t start_index = 0;
+  if (segments.size() > 1 && segments.front() == "model") {
+    start_index = 1;
+  }
+  if (start_index >= segments.size()) {
+    return {};
+  }
+
+  fs::path relative_path;
+  for (std::size_t i = start_index; i < segments.size(); ++i) {
+    relative_path /= segments[i];
+  }
+  return relative_path;
+}
+
+std::string
+ModelManager::IdFromRelativePath(const std::filesystem::path &relative_path) {
+  std::vector<std::string> relative_segments;
+  for (const auto &component : relative_path) {
+    const std::string part = component.string();
+    if (part.empty() || part == "." || part == "..") {
+      return {};
+    }
+    relative_segments.push_back(part);
+  }
+  if (!HasManagedModelPathDepth(relative_segments)) {
+    return {};
+  }
+
+  std::vector<std::string> segments = {"model"};
+  segments.insert(segments.end(), relative_segments.begin(), relative_segments.end());
+  std::string model_id;
+  for (std::size_t i = 0; i < segments.size(); ++i) {
+    if (i > 0) {
+      model_id += '.';
+    }
+    model_id += segments[i];
+  }
+  return model_id;
+}
+
+fs::path ModelManager::ModelDir(std::string_view model_id) const {
+  const fs::path relative_path = RelativePathForId(model_id);
+  if (relative_path.empty()) {
+    return {};
+  }
+  return fs::path(base_dir_) / relative_path;
+}
+
 ModelManager::ModelManager(const std::string &base_dir,
                            const std::string &model_id) {
   base_dir_ = NormalizeBaseDir(base_dir).string();
@@ -146,7 +234,7 @@ ModelManager::ModelManager(const std::string &base_dir,
 }
 
 bool ModelManager::EnsureModels(std::string *error) {
-  auto dir = fs::path(base_dir_) / model_id_;
+  auto dir = ModelDir(model_id_);
   auto json_path = dir / "vinput-model.json";
 
   if (!fs::exists(json_path)) {
@@ -197,7 +285,7 @@ bool ModelManager::EnsureModels(std::string *error) {
 }
 
 ModelInfo ModelManager::GetModelInfo(std::string *error) const {
-  auto dir = fs::path(base_dir_) / model_id_;
+  auto dir = ModelDir(model_id_);
   auto json_path = dir / "vinput-model.json";
 
   if (!fs::exists(json_path)) {
@@ -217,24 +305,32 @@ std::vector<std::string> ModelManager::ListModels() const {
   }
 
   for (const auto &entry : fs::directory_iterator(root)) {
-    if (!entry.is_directory()) {
-      continue;
-    }
-
-    const auto model_id = entry.path().filename().string();
-    if (IsValidModelDir(model_id)) {
-      models.push_back(model_id);
+    if (entry.is_directory()) {
+      for (const auto &nested : fs::recursive_directory_iterator(entry.path())) {
+        if (!nested.is_regular_file() ||
+            nested.path().filename() != "vinput-model.json") {
+          continue;
+        }
+        std::error_code rel_ec;
+        const fs::path relative_path =
+            nested.path().parent_path().lexically_relative(root);
+        const std::string model_id = IdFromRelativePath(relative_path);
+        if (!model_id.empty() && IsValidModelDir(model_id)) {
+          models.push_back(model_id);
+        }
+      }
     }
   }
 
   std::sort(models.begin(), models.end());
+  models.erase(std::unique(models.begin(), models.end()), models.end());
   return models;
 }
 
 std::string ModelManager::GetModelId() const { return model_id_; }
 
 bool ModelManager::IsValidModelDir(const std::string &model_id) const {
-  const auto dir = fs::path(base_dir_) / model_id;
+  const auto dir = ModelDir(model_id);
   const auto json_path = dir / "vinput-model.json";
   return fs::exists(json_path) && fs::is_regular_file(json_path);
 }
@@ -247,12 +343,16 @@ ModelManager::ListDetailed(const std::string &active_model) const {
     return summaries;
   }
 
-  for (const auto &entry : fs::directory_iterator(root)) {
-    if (!entry.is_directory()) {
+  for (const auto &entry : fs::recursive_directory_iterator(root)) {
+    if (!entry.is_regular_file() || entry.path().filename() != "vinput-model.json") {
       continue;
     }
 
-    const auto model_id = entry.path().filename().string();
+    const auto relative_path = entry.path().parent_path().lexically_relative(root);
+    const auto model_id = IdFromRelativePath(relative_path);
+    if (model_id.empty()) {
+      continue;
+    }
     ModelSummary s;
     s.id = model_id;
 
@@ -263,7 +363,7 @@ ModelManager::ListDetailed(const std::string &active_model) const {
     }
 
     // Parse model type and language from vinput-model.json
-    const auto json_path = entry.path() / "vinput-model.json";
+    const auto json_path = entry.path();
     try {
       std::ifstream file(json_path);
       json j;
@@ -292,7 +392,11 @@ ModelManager::ListDetailed(const std::string &active_model) const {
 
 bool ModelManager::Validate(const std::string &model_id,
                             std::string *error) const {
-  const auto dir = fs::path(base_dir_) / model_id;
+  const auto dir = ModelDir(model_id);
+  if (dir.empty()) {
+    if (error) *error = "invalid model id: " + model_id;
+    return false;
+  }
 
   if (!fs::exists(dir) || !fs::is_directory(dir)) {
     if (error) *error = "model directory does not exist: " + dir.string();
@@ -348,11 +452,25 @@ bool ModelManager::Validate(const std::string &model_id,
 
 bool ModelManager::Remove(const std::string &model_id,
                           std::string *error) const {
-  const auto dir = fs::weakly_canonical(fs::path(base_dir_) / model_id);
-  const auto base = fs::weakly_canonical(fs::path(base_dir_));
+  const fs::path requested_dir = ModelDir(model_id);
+  if (requested_dir.empty()) {
+    if (error) *error = "invalid model id: " + model_id;
+    return false;
+  }
 
-  // Prevent path traversal: dir must be a direct child of base_dir_
-  if (dir.parent_path() != base) {
+  std::error_code ec;
+  const auto dir = fs::weakly_canonical(requested_dir, ec);
+  if (ec) {
+    if (error) *error = "failed to resolve model directory: " + ec.message();
+    return false;
+  }
+  const auto base = fs::weakly_canonical(fs::path(base_dir_), ec);
+  if (ec) {
+    if (error) *error = "failed to resolve model base directory: " + ec.message();
+    return false;
+  }
+
+  if (!IsPathWithinRoot(dir, base)) {
     if (error) *error = "invalid model id: " + model_id;
     return false;
   }
@@ -362,7 +480,6 @@ bool ModelManager::Remove(const std::string &model_id,
     return false;
   }
 
-  std::error_code ec;
   fs::remove_all(dir, ec);
   if (ec) {
     if (error)

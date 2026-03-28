@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 struct ModelInfo {
@@ -63,6 +64,9 @@ public:
   bool Remove(const std::string &model_id, std::string *error) const;
   // Normalize base_dir (expand ~)
   static std::filesystem::path NormalizeBaseDir(const std::string &raw_path);
+  static std::filesystem::path RelativePathForId(std::string_view model_id);
+  static std::string IdFromRelativePath(const std::filesystem::path &relative_path);
+  std::filesystem::path ModelDir(std::string_view model_id) const;
 
 private:
   bool IsValidModelDir(const std::string &model_id) const;

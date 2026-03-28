@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <optional>
 #include <nlohmann/json.hpp>
 #include <vector>
 
@@ -10,6 +11,9 @@
 #include "common/config/core_config.h"
 #include "common/i18n.h"
 #include "common/asr/model_manager.h"
+#include "common/registry/registry_i18n.h"
+#include "common/registry/registry_models.h"
+#include "common/utils/download_progress.h"
 #include "common/utils/string_utils.h"
 
 namespace {
@@ -48,6 +52,76 @@ LocalAsrProvider *PreferredLocalProvider(CoreConfig *config) {
     }
   }
   return nullptr;
+}
+
+bool TryParseOneBasedIndex(const std::string &text, std::size_t *index) {
+  if (!index || text.empty()) {
+    return false;
+  }
+  if (!std::all_of(text.begin(), text.end(),
+                   [](unsigned char ch) { return std::isdigit(ch) != 0; })) {
+    return false;
+  }
+  try {
+    const std::size_t parsed = std::stoull(text);
+    if (parsed == 0) {
+      return false;
+    }
+    *index = parsed - 1;
+    return true;
+  } catch (...) {
+    return false;
+  }
+}
+
+std::string ResolveInstalledModelSelector(const std::string &selector,
+                                          const std::vector<ModelSummary> &models,
+                                          std::string *error) {
+  std::size_t index = 0;
+  if (TryParseOneBasedIndex(selector, &index)) {
+    if (index >= models.size()) {
+      if (error) {
+        *error = "installed model index out of range";
+      }
+      return {};
+    }
+    return models[index].id;
+  }
+
+  for (const auto &model : models) {
+    if (model.id == selector) {
+      return selector;
+    }
+  }
+  if (error) {
+    *error = "installed model not found: " + selector;
+  }
+  return {};
+}
+
+std::string ResolveRemoteModelSelector(const std::string &selector,
+                                       const std::vector<RemoteModelEntry> &models,
+                                       std::string *error) {
+  std::size_t index = 0;
+  if (TryParseOneBasedIndex(selector, &index)) {
+    if (index >= models.size()) {
+      if (error) {
+        *error = "available model index out of range";
+      }
+      return {};
+    }
+    return models[index].id;
+  }
+
+  for (const auto &model : models) {
+    if (model.id == selector) {
+      return selector;
+    }
+  }
+  if (error) {
+    *error = "available model not found: " + selector;
+  }
+  return {};
 }
 
 }  // namespace
@@ -145,14 +219,89 @@ int RunAsrConfigUse(const std::string &id, Formatter &fmt,
   return 0;
 }
 
-int RunAsrConfigListModels(Formatter &fmt, const CliContext &ctx) {
+int RunAsrConfigListModels(bool available, Formatter &fmt, const CliContext &ctx) {
   CoreConfig config = LoadCoreConfig();
   ModelManager manager(ResolveModelBaseDir(config).string());
   const std::string activeModel = ResolvePreferredLocalModel(config);
+
+  if (available) {
+    const auto registryUrls = ResolveModelRegistryUrls(config);
+    if (registryUrls.empty()) {
+      fmt.PrintError(
+          _("No model registry base URLs configured. Edit config.json and set registry.base_urls."));
+      return 1;
+    }
+
+    ModelRepository repository(ResolveModelBaseDir(config).string());
+    std::string error;
+    const auto remoteModels =
+        repository.FetchRegistry(config, registryUrls, &error);
+    if (!error.empty()) {
+      fmt.PrintError(error);
+      return 1;
+    }
+
+    const auto locale = vinput::registry::DetectPreferredLocale();
+    const auto i18nMap = vinput::registry::FetchMergedI18nMap(config, locale);
+    const auto installedModels = manager.ListDetailed(activeModel);
+
+    auto isInstalled = [&installedModels](const std::string &id) {
+      return std::any_of(installedModels.begin(), installedModels.end(),
+                         [&id](const ModelSummary &model) {
+                           return model.id == id;
+                         });
+    };
+
+    if (ctx.json_output) {
+      nlohmann::json arr = nlohmann::json::array();
+      std::size_t index = 1;
+      for (const auto &model : remoteModels) {
+        arr.push_back({
+            {"index", index++},
+            {"id", model.id},
+            {"title", vinput::registry::LookupI18n(
+                          i18nMap, model.id + ".title", model.id)},
+            {"description", vinput::registry::LookupI18n(
+                                i18nMap, model.id + ".description", "")},
+            {"model_type", model.model_type()},
+            {"language", model.language},
+            {"supports_hotwords", model.supports_hotwords()},
+            {"size_bytes", model.size_bytes},
+            {"size", vinput::str::FormatSize(model.size_bytes)},
+            {"status", isInstalled(model.id) ? "installed" : "available"},
+        });
+      }
+      fmt.PrintJson(arr);
+      return 0;
+    }
+
+    std::vector<std::string> headers = {_("INDEX"), _("ID"), _("TITLE"),
+                                        _("TYPE"), _("LANGUAGE"), _("SIZE"),
+                                        _("HOTWORDS"), _("STATUS")};
+    std::vector<std::vector<std::string>> rows;
+    std::size_t index = 1;
+    for (const auto &model : remoteModels) {
+      rows.push_back({std::to_string(index++),
+                      model.id,
+                      vinput::registry::LookupI18n(i18nMap,
+                                                   model.id + ".title",
+                                                   model.id),
+                      model.model_type(),
+                      model.language,
+                      vinput::str::FormatSize(model.size_bytes),
+                      model.supports_hotwords() ? _("yes") : _("no"),
+                      isInstalled(model.id) ? _("installed")
+                                            : _("available")});
+    }
+    fmt.PrintTable(headers, rows);
+    return 0;
+  }
+
   const auto models = manager.ListDetailed(activeModel);
 
   if (ctx.json_output) {
     nlohmann::json arr = nlohmann::json::array();
+    std::size_t index = 1;
     for (const auto &model : models) {
       std::string status = "installed";
       if (model.state == ModelState::Active) {
@@ -161,6 +310,7 @@ int RunAsrConfigListModels(Formatter &fmt, const CliContext &ctx) {
         status = "broken";
       }
       arr.push_back({
+          {"index", index++},
           {"id", model.id},
           {"model_type", model.model_type},
           {"language", model.language},
@@ -174,9 +324,10 @@ int RunAsrConfigListModels(Formatter &fmt, const CliContext &ctx) {
     return 0;
   }
 
-  std::vector<std::string> headers = {_("ID"), _("TYPE"), _("LANGUAGE"),
+  std::vector<std::string> headers = {_("INDEX"), _("ID"), _("TYPE"), _("LANGUAGE"),
                                       _("SIZE"), _("HOTWORDS"), _("STATUS")};
   std::vector<std::vector<std::string>> rows;
+  std::size_t index = 1;
   for (const auto &model : models) {
     std::string status = _("Installed");
     if (model.state == ModelState::Active) {
@@ -184,7 +335,7 @@ int RunAsrConfigListModels(Formatter &fmt, const CliContext &ctx) {
     } else if (model.state == ModelState::Broken) {
       status = std::string("[!] ") + _("Broken");
     }
-    rows.push_back({model.id, model.model_type, model.language,
+    rows.push_back({std::to_string(index++), model.id, model.model_type, model.language,
                     vinput::str::FormatSize(model.size_bytes),
                     model.supports_hotwords ? _("yes") : _("no"), status});
   }
@@ -192,13 +343,80 @@ int RunAsrConfigListModels(Formatter &fmt, const CliContext &ctx) {
   return 0;
 }
 
-int RunAsrConfigUseModel(const std::string &id, Formatter &fmt,
+int RunAsrConfigInstallModel(const std::string &selector, Formatter &fmt,
+                             const CliContext &ctx) {
+  CoreConfig config = LoadCoreConfig();
+  NormalizeCoreConfig(&config);
+  const auto baseDir = ResolveModelBaseDir(config);
+  const auto registryUrls = ResolveModelRegistryUrls(config);
+  if (registryUrls.empty()) {
+    fmt.PrintError(
+        _("No model registry base URLs configured. Edit config.json and set registry.base_urls."));
+    return 1;
+  }
+
+  ModelRepository repository(baseDir.string());
+  std::string error;
+  const auto remoteModels = repository.FetchRegistry(config, registryUrls, &error);
+  if (!error.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
+
+  const std::string id =
+      ResolveRemoteModelSelector(selector, remoteModels, &error);
+  if (id.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
+
+  uint64_t totalSize = 0;
+  for (const auto &model : remoteModels) {
+    if (model.id == id) {
+      totalSize = model.size_bytes;
+      break;
+    }
+  }
+
+  char labelBuf[256];
+  snprintf(labelBuf, sizeof(labelBuf), _("Downloading %s..."), id.c_str());
+  ProgressBar bar(labelBuf, totalSize, ctx.is_tty);
+
+  const bool ok = repository.InstallModel(
+      config, registryUrls, id,
+      [&bar](const InstallProgress &progress) {
+        bar.Update(progress.downloaded_bytes, progress.speed_bps);
+      },
+      &error);
+  bar.Finish();
+
+  if (!ok) {
+    fmt.PrintError(error);
+    return 1;
+  }
+
+  fmt.PrintSuccess(
+      vinput::str::FmtStr(_("Model '%s' installed successfully."), id));
+  fmt.PrintInfo(
+      vinput::str::FmtStr(_("Run `vinput asr use-model %s` to activate."), id));
+  return 0;
+}
+
+int RunAsrConfigUseModel(const std::string &selector, Formatter &fmt,
                          const CliContext &ctx) {
   (void)ctx;
   CoreConfig config = LoadCoreConfig();
   ModelManager manager(ResolveModelBaseDir(config).string());
+  const std::string activeModel = ResolvePreferredLocalModel(config);
+  const auto models = manager.ListDetailed(activeModel);
 
   std::string error;
+  const std::string id =
+      ResolveInstalledModelSelector(selector, models, &error);
+  if (id.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
   if (!manager.Validate(id, &error)) {
     fmt.PrintError(vinput::str::FmtStr(_("Model '%s' is not valid: %s"), id, error));
     return 1;
@@ -215,16 +433,27 @@ int RunAsrConfigUseModel(const std::string &id, Formatter &fmt,
   return 0;
 }
 
-int RunAsrConfigModelInfo(const std::string &id, Formatter &fmt,
+int RunAsrConfigModelInfo(const std::string &selector, Formatter &fmt,
                           const CliContext &ctx) {
-  ModelManager manager("", id);
+  CoreConfig config = LoadCoreConfig();
+  const std::string baseDir = ResolveModelBaseDir(config).string();
+  ModelManager manager(baseDir);
+  const std::string activeModel = ResolvePreferredLocalModel(config);
+  const auto models = manager.ListDetailed(activeModel);
   std::string error;
+  const std::string id =
+      ResolveInstalledModelSelector(selector, models, &error);
+  if (id.empty()) {
+    fmt.PrintError(error);
+    return 1;
+  }
   if (!manager.Validate(id, &error)) {
     fmt.PrintError(vinput::str::FmtStr(_("Model '%s' is not valid: %s"), id, error));
     return 1;
   }
 
-  const ModelInfo info = manager.GetModelInfo(&error);
+  ModelManager selectedManager(baseDir, id);
+  const ModelInfo info = selectedManager.GetModelInfo(&error);
   if (!error.empty()) {
     fmt.PrintError(error);
     return 1;
