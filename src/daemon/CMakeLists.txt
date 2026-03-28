@@ -41,6 +41,7 @@ add_executable(vinput-daemon
 
 if(VOSK_LIB AND VOSK_INCLUDE_DIR)
     target_sources(vinput-daemon PRIVATE
+        asr/backends/vosk_offline_backend.cpp
         asr/backends/vosk_streaming_backend.cpp
     )
     target_compile_definitions(vinput-daemon PRIVATE

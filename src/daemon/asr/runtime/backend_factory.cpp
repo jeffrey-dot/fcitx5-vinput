@@ -5,6 +5,7 @@
 #include "daemon/asr/backends/sherpa_offline_backend.h"
 #include "daemon/asr/backends/sherpa_streaming_backend.h"
 #ifdef VINPUT_HAVE_VOSK
+#include "daemon/asr/backends/vosk_offline_backend.h"
 #include "daemon/asr/backends/vosk_streaming_backend.h"
 #endif
 
@@ -56,6 +57,10 @@ std::unique_ptr<AsrBackend> CreateLocalBackend(const CoreConfig &config,
   }
 
 #ifdef VINPUT_HAVE_VOSK
+  if (backend_id == "vosk-offline") {
+    return CreateVoskOfflineBackend(config, provider, error);
+  }
+
   if (backend_id == "vosk-streaming") {
     return CreateVoskStreamingBackend(config, provider, error);
   }

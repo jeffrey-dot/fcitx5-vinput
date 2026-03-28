@@ -256,7 +256,7 @@ bool HasModelFiles(const ModelInfo &info) {
 }
 
 bool IsDirectoryModelBackend(const ModelInfo &info) {
-  return info.backend == "vosk-streaming";
+  return info.backend == "vosk-streaming" || info.backend == "vosk-offline";
 }
 
 } // namespace
