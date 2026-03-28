@@ -40,6 +40,18 @@ std::string InferringPreeditText() { return _("... Recognizing ..."); }
 
 std::string PostprocessingPreeditText() { return _("... Postprocessing ..."); }
 
+std::string ComposeLivePreedit(bool command_mode, bool recording,
+                               const std::string &partial_text,
+                               const std::string &fallback_text) {
+  (void)command_mode;
+  (void)recording;
+  if (partial_text.empty()) {
+    return fallback_text;
+  }
+
+  return partial_text;
+}
+
 std::string AppendDetail(std::string summary, const std::string &detail) {
   if (detail.empty()) {
     return summary;
@@ -61,9 +73,9 @@ std::string RenderErrorMessage(const vinput::dbus::ErrorInfo &error) {
   }
   if (error.code == kErrorCodeLocalAsrModelTypeMissing) {
     return error.subject.empty()
-               ? _("Local ASR model metadata is missing model_type.")
+               ? _("Local ASR model metadata is missing family.")
                : vinput::str::FmtStr(
-                     _("Local ASR model metadata is missing model_type for provider '%s'."),
+                     _("Local ASR model metadata is missing family for provider '%s'."),
                      error.subject);
   }
   if (error.code == kErrorCodeLocalAsrModelInvalidPath) {
@@ -241,6 +253,15 @@ void VinputEngine::setupDBusWatcher() {
     return true;
   });
 
+  fcitx::dbus::MatchRule partial_rule(kBusName, kObjectPath, kInterface,
+                                      kSignalRecognitionPartial);
+
+  partial_slot_ =
+      bus_->addMatch(partial_rule, [this](fcitx::dbus::Message &msg) {
+        onRecognitionPartial(msg);
+        return true;
+      });
+
   fcitx::dbus::MatchRule status_rule(kBusName, kObjectPath, kInterface,
                                      kSignalStatusChanged);
 
@@ -343,7 +364,7 @@ void VinputEngine::enterRecordingState(fcitx::InputContext *ic,
   }
   if (!session_) {
     session_.emplace(Session{Session::Phase::Recording, ic, trigger,
-                             std::chrono::steady_clock::now(), command_mode});
+                             std::chrono::steady_clock::now(), command_mode, {}});
   } else {
     session_->phase = Session::Phase::Recording;
     session_->ic = ic;
@@ -351,7 +372,11 @@ void VinputEngine::enterRecordingState(fcitx::InputContext *ic,
     session_->command_mode = command_mode;
   }
   status_ic_ = ic;
-  updatePreedit(ic, command_mode ? CommandingPreeditText() : RecordingPreeditText());
+  updatePreedit(ic, ComposeLivePreedit(
+                        command_mode, true,
+                        session_ ? session_->partial_text : std::string{},
+                        command_mode ? CommandingPreeditText()
+                                     : RecordingPreeditText()));
   ensureStatusSync();
 }
 
@@ -365,7 +390,7 @@ void VinputEngine::enterBusyState(fcitx::InputContext *ic, bool command_mode,
   }
   if (!session_) {
     session_.emplace(Session{Session::Phase::Busy, ic, fcitx::Key(),
-                             std::chrono::steady_clock::now(), command_mode});
+                             std::chrono::steady_clock::now(), command_mode, {}});
   } else {
     session_->phase = Session::Phase::Busy;
     session_->ic = ic;
@@ -373,7 +398,10 @@ void VinputEngine::enterBusyState(fcitx::InputContext *ic, bool command_mode,
     session_->command_mode = command_mode;
   }
   status_ic_ = ic;
-  updatePreedit(ic, preedit_text);
+  updatePreedit(ic, ComposeLivePreedit(
+                        command_mode, false,
+                        session_ ? session_->partial_text : std::string{},
+                        preedit_text));
   ensureStatusSync();
 }
 
@@ -511,6 +539,26 @@ void VinputEngine::onRecognitionResult(fcitx::dbus::Message &msg) {
   }
 
   ic->commitString(payload.commitText);
+}
+
+void VinputEngine::onRecognitionPartial(fcitx::dbus::Message &msg) {
+  std::string partial_text;
+  msg >> partial_text;
+
+  auto *ic = session_ ? session_->ic : status_ic_;
+  if (!ic || !session_) {
+    return;
+  }
+
+  session_->partial_text = std::move(partial_text);
+  if (!session_->partial_text.empty()) {
+    updatePreedit(ic, ComposeLivePreedit(
+                          session_->command_mode,
+                          session_->phase == Session::Phase::Recording,
+                          session_->partial_text,
+                          session_->command_mode ? CommandingPreeditText()
+                                                 : RecordingPreeditText()));
+  }
 }
 
 void VinputEngine::onStatusChanged(fcitx::dbus::Message &msg) {

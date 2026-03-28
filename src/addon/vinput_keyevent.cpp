@@ -239,6 +239,7 @@ void VinputEngine::finishStopRecording() {
   active_scene_id_ = scene.id;
   session_->phase = Session::Phase::Busy;
   session_->trigger = fcitx::Key();
+  enterBusyState(session_->ic, session_->command_mode,
+                 _("... Recognizing ..."));
   callStopRecording(scene.id);
-  syncFrontendWithDaemonStatus(session_->ic, session_->command_mode);
 }

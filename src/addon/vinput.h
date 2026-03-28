@@ -54,6 +54,7 @@ private:
   void callStartCommandRecording(const std::string &selected_text);
   void callStopRecording(const std::string &scene_id);
   void onRecognitionResult(fcitx::dbus::Message &msg);
+  void onRecognitionPartial(fcitx::dbus::Message &msg);
   void onStatusChanged(fcitx::dbus::Message &msg);
   void onDaemonError(fcitx::dbus::Message &msg);
   void notifyError(const vinput::dbus::ErrorInfo &error);
@@ -77,6 +78,7 @@ private:
   fcitx::dbus::Bus *bus_ = nullptr;
   std::unique_ptr<VinputNotifierDBusObject> notifier_dbus_;
   std::unique_ptr<fcitx::dbus::Slot> result_slot_;
+  std::unique_ptr<fcitx::dbus::Slot> partial_slot_;
   std::unique_ptr<fcitx::dbus::Slot> status_slot_;
   std::unique_ptr<fcitx::dbus::Slot> error_slot_;
   struct Session {
@@ -86,6 +88,7 @@ private:
     fcitx::Key trigger;
     std::chrono::steady_clock::time_point press_time;
     bool command_mode = false;
+    std::string partial_text;
   };
   std::optional<Session> session_;
   fcitx::InputContext *status_ic_ = nullptr;
