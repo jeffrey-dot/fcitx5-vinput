@@ -713,9 +713,15 @@ int RunAsrConfigModelInfo(const std::string &selector, Formatter &fmt,
 
   nlohmann::json obj;
   obj["id"] = id;
-  obj["model_type"] = info.model_type;
-  obj["files"] = info.files;
-  obj["params"] = info.params;
+  obj["backend"] = info.backend;
+  obj["runtime"] = info.runtime;
+  obj["family"] = info.family;
+  obj["language"] = info.language;
+  obj["supports_hotwords"] = info.supports_hotwords;
+  obj["size_bytes"] = info.size_bytes;
+  obj["recognizer"] = info.recognizer_config;
+  obj["model"] = info.model_config;
+  obj["resolved_files"] = info.files;
 
   if (ctx.json_output) {
     fmt.PrintJson(obj);
@@ -725,14 +731,18 @@ int RunAsrConfigModelInfo(const std::string &selector, Formatter &fmt,
   std::vector<std::string> headers = {_("FIELD"), _("VALUE")};
   std::vector<std::vector<std::string>> rows = {
       {"id", id},
-      {"model_type", info.model_type},
+      {"backend", info.backend},
+      {"runtime", info.runtime},
+      {"family", info.family},
+      {"language", info.language},
+      {"supports_hotwords", info.supports_hotwords ? "true" : "false"},
+      {"size_bytes", std::to_string(info.size_bytes)},
   };
-  for (const auto &[key, value] : info.params) {
-    rows.push_back({std::string("param.") + key, value});
-  }
   for (const auto &[key, value] : info.files) {
     rows.push_back({std::string("file.") + key, value});
   }
+  rows.push_back({"recognizer", info.recognizer_config.dump()});
+  rows.push_back({"model", info.model_config.dump()});
   fmt.PrintTable(headers, rows);
   return 0;
 }

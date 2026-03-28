@@ -17,7 +17,9 @@ struct RemoteModelEntry {
   nlohmann::json vinput_model; // pre-built vinput-model.json content
 
   // Convenience accessors reading from vinput_model
-  std::string model_type() const { return vinput_model.value("model_type", ""); }
+  std::string model_type() const {
+    return vinput_model.value("family", vinput_model.value("model_type", ""));
+  }
   bool supports_hotwords() const { return vinput_model.value("supports_hotwords", false); }
 };
 
