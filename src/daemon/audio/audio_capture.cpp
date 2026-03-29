@@ -24,18 +24,20 @@ void AudioCapture::onProcess(void *userdata) {
 }
 
 void AudioCapture::processCallback() {
-  if (!stream_) {
+  struct pw_stream *s = stream_;
+  if (!s) {
     return;
   }
 
-  struct pw_buffer *b = pw_stream_dequeue_buffer(stream_);
+  struct pw_buffer *b = pw_stream_dequeue_buffer(s);
   if (!b) {
     return;
   }
 
   struct spa_buffer *buf = b->buffer;
-  if (buf->datas[0].data == nullptr || buf->datas[0].chunk == nullptr) {
-    pw_stream_queue_buffer(stream_, b);
+  if (!buf || buf->n_datas == 0 || buf->datas[0].data == nullptr ||
+      buf->datas[0].chunk == nullptr) {
+    pw_stream_queue_buffer(s, b);
     return;
   }
 
@@ -43,23 +45,25 @@ void AudioCapture::processCallback() {
     auto *raw = static_cast<uint8_t *>(buf->datas[0].data);
     const uint32_t offset = buf->datas[0].chunk->offset;
     const uint32_t size = buf->datas[0].chunk->size;
-    auto *samples = reinterpret_cast<int16_t *>(raw + offset);
-    uint32_t n_samples = size / sizeof(int16_t);
-    {
-      std::lock_guard<std::mutex> lock(buffer_mutex_);
-      pcm_buffer_.insert(pcm_buffer_.end(), samples, samples + n_samples);
-    }
-    ChunkCallback callback;
-    {
-      std::lock_guard<std::mutex> lock(callback_mutex_);
-      callback = chunk_callback_;
-    }
-    if (callback && n_samples > 0) {
-      callback(std::span<const int16_t>(samples, n_samples));
+    if (size > 0 && offset + size <= buf->datas[0].maxsize) {
+      auto *samples = reinterpret_cast<int16_t *>(raw + offset);
+      uint32_t n_samples = size / sizeof(int16_t);
+      {
+        std::lock_guard<std::mutex> lock(buffer_mutex_);
+        pcm_buffer_.insert(pcm_buffer_.end(), samples, samples + n_samples);
+      }
+      ChunkCallback callback;
+      {
+        std::lock_guard<std::mutex> lock(callback_mutex_);
+        callback = chunk_callback_;
+      }
+      if (callback && n_samples > 0) {
+        callback(std::span<const int16_t>(samples, n_samples));
+      }
     }
   }
 
-  pw_stream_queue_buffer(stream_, b);
+  pw_stream_queue_buffer(s, b);
 }
 
 void AudioCapture::onParamChanged(void *userdata, uint32_t id,

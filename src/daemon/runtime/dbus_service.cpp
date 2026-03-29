@@ -88,7 +88,9 @@ bool DbusService::Start(std::string *error) {
     return false;
   }
 
-  ret = sd_bus_request_name(bus_, kBusName, 0);
+  ret = sd_bus_request_name(
+      bus_, kBusName,
+      SD_BUS_NAME_REPLACE_EXISTING | SD_BUS_NAME_ALLOW_REPLACEMENT);
   if (ret < 0) {
     if (error) {
       *error = std::string("failed to request D-Bus name: ") + strerror(-ret);
