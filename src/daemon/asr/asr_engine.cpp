@@ -123,6 +123,7 @@ bool AsrEngine::Init(const ModelInfo &info, const AsrConfig &asr_config,
   const std::string f_llm = info.File("llm");
   const std::string f_embedding = info.File("embedding");
   const std::string f_tokenizer = info.File("tokenizer");
+  const std::string f_conv_frontend = info.File("conv_frontend");
   const std::string f_lm = info.File("lm");
   const std::string f_hotwords_file = info.File("hotwords_file");
   const std::string f_bpe_vocab = info.File("bpe_vocab");
@@ -363,6 +364,27 @@ bool AsrEngine::Init(const ModelInfo &info, const AsrConfig &asr_config,
                  JsonInt(family_cfg, "seed", 0);
              if (!config.model_config.model_type) {
                config.model_config.model_type = "funasr_nano";
+             }
+           }},
+          {"qwen3_asr",
+           [&] {
+             config.model_config.qwen3_asr.conv_frontend =
+                 f_conv_frontend.c_str();
+             config.model_config.qwen3_asr.encoder = f_encoder.c_str();
+             config.model_config.qwen3_asr.decoder = f_decoder.c_str();
+             config.model_config.qwen3_asr.tokenizer = f_tokenizer.c_str();
+             config.model_config.qwen3_asr.max_total_len =
+                 JsonInt(family_cfg, "max_total_len", 4096);
+             config.model_config.qwen3_asr.max_new_tokens =
+                 JsonInt(family_cfg, "max_new_tokens", 1024);
+             config.model_config.qwen3_asr.temperature =
+                 JsonFloat(family_cfg, "temperature", 1.0f);
+             config.model_config.qwen3_asr.top_p =
+                 JsonFloat(family_cfg, "top_p", 0.9f);
+             config.model_config.qwen3_asr.seed =
+                 JsonInt(family_cfg, "seed", 0);
+             if (!config.model_config.model_type) {
+               config.model_config.model_type = "qwen3_asr";
              }
            }}};
 

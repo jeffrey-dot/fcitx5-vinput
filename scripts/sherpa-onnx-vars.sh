@@ -12,6 +12,9 @@ sherpa_onnx_set_vars() {
     SHERPA_ONNX_SHA256=""
 
     case "${version}" in
+        1.12.34)
+            SHERPA_ONNX_SHA256="1c59ff6dcea5f2b56d16273a929b81e383f2b7c636f689a0bdf04a940982512a"
+            ;;
         1.12.31)
             SHERPA_ONNX_SHA256="c60e373867cdb951a7156b046f673cabf1d228c9cee531a848d205cebf63882c"
             ;;
@@ -32,4 +35,4 @@ sherpa_onnx_fetch_digest() {
              | ltrimstr("sha256:")'
 }
 
-sherpa_onnx_set_vars "${SHERPA_ONNX_VERSION:-1.12.31}"
+sherpa_onnx_set_vars "${SHERPA_ONNX_VERSION:-1.12.34}"
