@@ -80,6 +80,23 @@ jobs:
       - name: Build
         run: cmake --build build
 
+  build-nix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Check flake
+        run: nix flake check --no-build
+
+      - name: Build (x86_64-linux)
+        run: nix build .#fcitx5-vinput --no-link
+
   flatpak:
     runs-on: ubuntu-latest
     env:
