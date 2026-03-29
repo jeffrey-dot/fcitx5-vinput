@@ -104,40 +104,39 @@ ControlPage::ControlPage(QWidget *parent) : QWidget(parent) {
   daemonRefreshTimer_->start(2000);
 
   QTimer::singleShot(0, this, &ControlPage::refreshDaemonStatus);
-  QTimer::singleShot(0, this, &ControlPage::refreshAsrList);
   QTimer::singleShot(0, this, &ControlPage::checkSandboxPermissions);
 }
 
 void ControlPage::reload() {
-  // Reload device combo
+  // Reload device combo — async
   comboDevice_->clear();
   comboDevice_->addItem("default", "default");
 
-  QJsonDocument doc;
-  QString err;
-  if (RunVinputJson({"device", "list"}, &doc, &err) && doc.isArray()) {
-    for (const auto &v : doc.array()) {
-      if (!v.isObject())
-        continue;
-      QJsonObject obj = v.toObject();
-      QString name = obj.value("name").toString();
-      if (name.isEmpty())
-        continue;
-      QString desc = obj.value("description").toString();
-      QString label =
-          desc.isEmpty() ? name : QString("%1 - %2").arg(name, desc);
-      bool active = obj.value("active").toBool(false);
-      comboDevice_->addItem(label, name);
-      if (active) {
-        comboDevice_->setCurrentIndex(comboDevice_->count() - 1);
-      }
-    }
-  }
-
-  // If no active found, select "default"
-  if (comboDevice_->currentIndex() <= 0) {
-    comboDevice_->setCurrentIndex(0);
-  }
+  RunVinputJsonAsync(
+      {"device", "list"}, this,
+      [this](bool ok, const QJsonDocument &doc, const QString &) {
+        if (!ok || !doc.isArray())
+          return;
+        for (const auto &v : doc.array()) {
+          if (!v.isObject())
+            continue;
+          QJsonObject obj = v.toObject();
+          QString name = obj.value("name").toString();
+          if (name.isEmpty())
+            continue;
+          QString desc = obj.value("description").toString();
+          QString label =
+              desc.isEmpty() ? name : QString("%1 - %2").arg(name, desc);
+          bool active = obj.value("active").toBool(false);
+          comboDevice_->addItem(label, name);
+          if (active) {
+            comboDevice_->setCurrentIndex(comboDevice_->count() - 1);
+          }
+        }
+        if (comboDevice_->currentIndex() <= 0) {
+          comboDevice_->setCurrentIndex(0);
+        }
+      });
 
   refreshAsrList();
 }
@@ -152,34 +151,36 @@ QString ControlPage::currentDevice() const {
 void ControlPage::refreshAsrList() {
   listAsrProviders_->clear();
 
-  QJsonDocument doc;
-  if (!RunVinputJson({"provider", "list"}, &doc) || !doc.isArray()) {
-    return;
-  }
+  RunVinputJsonAsync(
+      {"provider", "list"}, this,
+      [this](bool ok, const QJsonDocument &doc, const QString &) {
+        if (!ok || !doc.isArray())
+          return;
 
-  for (const auto &v : doc.array()) {
-    if (!v.isObject())
-      continue;
-    QJsonObject obj = v.toObject();
-    QString id = obj.value("id").toString();
-    QString type = obj.value("type").toString();
-    bool active = obj.value("active").toBool(false);
+        for (const auto &v : doc.array()) {
+          if (!v.isObject())
+            continue;
+          QJsonObject obj = v.toObject();
+          QString id = obj.value("id").toString();
+          QString type = obj.value("type").toString();
+          bool active = obj.value("active").toBool(false);
 
-    QString display = id + " [" + type + "]";
-    if (type == "local") {
-      QString model = obj.value("model").toString();
-      display += " · " +
-                 (model.isEmpty() ? GuiTranslate("(not set)") : model);
-    } else if (!obj.value("command").toString().isEmpty()) {
-      display += " · " + obj.value("command").toString();
-    }
-    if (active) {
-      display += GuiTranslate(" *");
-    }
+          QString display = id + " [" + type + "]";
+          if (type == "local") {
+            QString model = obj.value("model").toString();
+            display += " · " +
+                       (model.isEmpty() ? GuiTranslate("(not set)") : model);
+          } else if (!obj.value("command").toString().isEmpty()) {
+            display += " · " + obj.value("command").toString();
+          }
+          if (active) {
+            display += GuiTranslate(" *");
+          }
 
-    auto *item = new QListWidgetItem(display, listAsrProviders_);
-    item->setData(Qt::UserRole, id);
-  }
+          auto *item = new QListWidgetItem(display, listAsrProviders_);
+          item->setData(Qt::UserRole, id);
+        }
+      });
 }
 
 void ControlPage::onAsrAdd() {
@@ -351,44 +352,45 @@ void ControlPage::onAsrSetActive() {
 }
 
 void ControlPage::refreshDaemonStatus() {
-  QJsonDocument doc;
-  QString err;
-  bool ok = RunVinputJson({"daemon", "status"}, &doc, &err);
+  RunVinputJsonAsync(
+      {"daemon", "status"}, this,
+      [this](bool ok, const QJsonDocument &doc, const QString &err) {
+        if (!ok || !doc.isObject()) {
+          lblDaemonStatus_->setText(tr("Error: %1").arg(err));
+          lblDaemonStatus_->setStyleSheet("color: red;");
+          btnDaemonStart_->setEnabled(true);
+          btnDaemonStop_->setEnabled(false);
+          btnDaemonRestart_->setEnabled(false);
+          return;
+        }
 
-  if (!ok || !doc.isObject()) {
-    lblDaemonStatus_->setText(tr("Error: %1").arg(err));
-    lblDaemonStatus_->setStyleSheet("color: red;");
-    btnDaemonStart_->setEnabled(true);
-    btnDaemonStop_->setEnabled(false);
-    btnDaemonRestart_->setEnabled(false);
-    return;
-  }
+        QJsonObject obj = doc.object();
+        bool running = obj.value("running").toBool();
 
-  QJsonObject obj = doc.object();
-  bool running = obj.value("running").toBool();
+        if (!running) {
+          lblDaemonStatus_->setText(tr("Stopped"));
+          lblDaemonStatus_->setStyleSheet("color: gray;");
+          btnDaemonStart_->setEnabled(true);
+          btnDaemonStop_->setEnabled(false);
+          btnDaemonRestart_->setEnabled(false);
+          return;
+        }
 
-  if (!running) {
-    lblDaemonStatus_->setText(tr("Stopped"));
-    lblDaemonStatus_->setStyleSheet("color: gray;");
-    btnDaemonStart_->setEnabled(true);
-    btnDaemonStop_->setEnabled(false);
-    btnDaemonRestart_->setEnabled(false);
-    return;
-  }
+        QString status = obj.value("status").toString();
+        if (status.isEmpty()) {
+          QString runtime_err = obj.value("error").toString();
+          lblDaemonStatus_->setText(
+              tr("Running (Status Error: %1)").arg(runtime_err));
+          lblDaemonStatus_->setStyleSheet("color: orange;");
+        } else {
+          lblDaemonStatus_->setText(tr("Running: %1").arg(status));
+          lblDaemonStatus_->setStyleSheet("color: green;");
+        }
 
-  QString status = obj.value("status").toString();
-  if (status.isEmpty()) {
-    QString runtime_err = obj.value("error").toString();
-    lblDaemonStatus_->setText(tr("Running (Status Error: %1)").arg(runtime_err));
-    lblDaemonStatus_->setStyleSheet("color: orange;");
-  } else {
-    lblDaemonStatus_->setText(tr("Running: %1").arg(status));
-    lblDaemonStatus_->setStyleSheet("color: green;");
-  }
-
-  btnDaemonStart_->setEnabled(false);
-  btnDaemonStop_->setEnabled(true);
-  btnDaemonRestart_->setEnabled(true);
+        btnDaemonStart_->setEnabled(false);
+        btnDaemonStop_->setEnabled(true);
+        btnDaemonRestart_->setEnabled(true);
+      });
 }
 
 void ControlPage::onDaemonStart() {

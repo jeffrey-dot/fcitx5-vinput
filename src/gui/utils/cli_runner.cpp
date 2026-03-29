@@ -14,6 +14,24 @@
 
 namespace vinput::gui {
 
+namespace {
+
+// QProcess subclass that ensures the child process is killed before
+// destruction, avoiding the "QProcess: Destroyed while process is still
+// running" warning.
+class SafeProcess : public QProcess {
+public:
+  using QProcess::QProcess;
+  ~SafeProcess() override {
+    if (state() != NotRunning) {
+      kill();
+      waitForFinished(1000);
+    }
+  }
+};
+
+} // namespace
+
 QString ResolveVinputExecutable(QString *error_out) {
   const std::filesystem::path cli_path = vinput::path::CliExecutablePath();
   const QString path_str = QString::fromStdString(cli_path.string());
@@ -139,7 +157,7 @@ QProcess *RunVinputJsonAsync(const QStringList &args, QObject *parent,
     return nullptr;
   }
 
-  auto *proc = new QProcess(parent);
+  auto *proc = new SafeProcess(parent);
   QStringList cmd_args;
   cmd_args << "--json" << args;
 
