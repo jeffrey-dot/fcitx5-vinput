@@ -13,6 +13,7 @@
 #include "pages/hotwords/hotword_page.h"
 #include "pages/llm/llm_page.h"
 #include "pages/resources/resource_page.h"
+#include "common/utils/path_utils.h"
 #include "utils/cli_runner.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -100,14 +101,7 @@ void MainWindow::onSaveClicked() {
 }
 
 void MainWindow::onOpenConfigClicked() {
-  // Use config edit to get the path, or just open known location
-  QJsonDocument doc;
-  QString err;
-  if (vinput::gui::RunVinputJson({"config", "get", "/version"}, &doc, &err) &&
-      doc.isObject()) {
-    // config get returns {"path": ..., "value": ...}
-    // We just want to open the config file
-  }
-  // Fallback: open via CLI
-  vinput::gui::StartVinputDetached({"config", "edit", "core"});
+  const auto configPath = vinput::path::CoreConfigPath();
+  QDesktopServices::openUrl(
+      QUrl::fromLocalFile(QString::fromStdString(configPath.string())));
 }

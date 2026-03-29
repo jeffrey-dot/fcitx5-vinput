@@ -45,7 +45,7 @@ ControlPage::ControlPage(QWidget *parent) : QWidget(parent) {
   auto *asrBtnLayout = new QVBoxLayout();
   btnAsrEdit_ = new QPushButton(tr("Edit"));
   btnAsrRemove_ = new QPushButton(tr("Remove"));
-  btnAsrSetActive_ = new QPushButton(tr("Set Active"));
+  btnAsrSetActive_ = new QPushButton(tr("Activate"));
   asrBtnLayout->addWidget(btnAsrEdit_);
   asrBtnLayout->addWidget(btnAsrRemove_);
   asrBtnLayout->addWidget(btnAsrSetActive_);
@@ -76,9 +76,9 @@ ControlPage::ControlPage(QWidget *parent) : QWidget(parent) {
   daemonLayout->addLayout(statusLayout);
 
   auto *btnLayout = new QHBoxLayout();
-  btnDaemonStart_ = new QPushButton(tr("Start Daemon"));
-  btnDaemonStop_ = new QPushButton(tr("Stop Daemon"));
-  btnDaemonRestart_ = new QPushButton(tr("Restart Daemon"));
+  btnDaemonStart_ = new QPushButton(tr("Start"));
+  btnDaemonStop_ = new QPushButton(tr("Stop"));
+  btnDaemonRestart_ = new QPushButton(tr("Restart"));
   btnLayout->addWidget(btnDaemonStart_);
   btnLayout->addWidget(btnDaemonStop_);
   btnLayout->addWidget(btnDaemonRestart_);

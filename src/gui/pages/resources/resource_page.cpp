@@ -50,8 +50,8 @@ ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
   topLayout->addWidget(tableInstalledModels_, 1);
 
   auto *btnLayout = new QVBoxLayout();
-  btnUseModel_ = new QPushButton(tr("Use Selected"));
-  btnRemoveModel_ = new QPushButton(tr("Remove Selected"));
+  btnUseModel_ = new QPushButton(tr("Use"));
+  btnRemoveModel_ = new QPushButton(tr("Remove"));
   btnRefreshResources_ = new QPushButton(tr("Refresh"));
   btnLayout->addWidget(btnUseModel_);
   btnLayout->addWidget(btnRemoveModel_);
@@ -70,7 +70,7 @@ ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
               tr("Size"), tr("Hotwords"), tr("Status")});
   remoteLayout->addWidget(tableAvailableModels_, 1);
 
-  btnDownloadModel_ = new QPushButton(tr("Download Selected"));
+  btnDownloadModel_ = new QPushButton(tr("Download"));
   auto *dlLayout = new QVBoxLayout();
   dlLayout->addWidget(btnDownloadModel_);
   dlLayout->addStretch();
@@ -86,7 +86,7 @@ ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
              {tr("Title"), tr("Description"), tr("Mode"), tr("Status")});
   providerLayout->addWidget(tableAvailableProviders_, 1);
 
-  btnAddProvider_ = new QPushButton(tr("Add Selected"));
+  btnAddProvider_ = new QPushButton(tr("Install"));
   auto *providerBtnLayout = new QVBoxLayout();
   providerBtnLayout->addWidget(btnAddProvider_);
   providerBtnLayout->addStretch();
@@ -102,7 +102,7 @@ ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
              {tr("Title"), tr("Description"), tr("Status")});
   adapterLayout->addWidget(tableAvailableAdapters_, 1);
 
-  btnAddAdapter_ = new QPushButton(tr("Add Selected"));
+  btnAddAdapter_ = new QPushButton(tr("Install"));
   auto *adapterBtnLayout = new QVBoxLayout();
   adapterBtnLayout->addWidget(btnAddAdapter_);
   adapterBtnLayout->addStretch();

@@ -99,7 +99,7 @@ LlmPage::LlmPage(QWidget *parent) : QWidget(parent) {
   btnSceneAdd_ = new QPushButton(tr("Add"));
   btnSceneEdit_ = new QPushButton(tr("Edit"));
   btnSceneRemove_ = new QPushButton(tr("Remove"));
-  btnSceneSetActive_ = new QPushButton(tr("Set Active"));
+  btnSceneSetActive_ = new QPushButton(tr("Activate"));
   sceneBtnLayout->addWidget(btnSceneAdd_);
   sceneBtnLayout->addWidget(btnSceneEdit_);
   sceneBtnLayout->addWidget(btnSceneRemove_);
