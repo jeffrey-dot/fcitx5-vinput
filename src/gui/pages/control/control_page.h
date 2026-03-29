@@ -26,6 +26,7 @@ signals:
 
 private slots:
   void refreshAsrList();
+  void updateAsrButtons();
   void onAsrEdit();
   void onAsrRemove();
   void onAsrSetActive();

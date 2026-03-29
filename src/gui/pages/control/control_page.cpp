@@ -59,6 +59,11 @@ ControlPage::ControlPage(QWidget *parent) : QWidget(parent) {
           &ControlPage::onAsrRemove);
   connect(btnAsrSetActive_, &QPushButton::clicked, this,
           &ControlPage::onAsrSetActive);
+  connect(listAsrProviders_, &QListWidget::currentItemChanged, this,
+          [this](QListWidgetItem *, QListWidgetItem *) { updateAsrButtons(); });
+  btnAsrEdit_->setEnabled(false);
+  btnAsrRemove_->setEnabled(false);
+  btnAsrSetActive_->setEnabled(false);
 
   // Daemon section
   auto *daemonFrame = new QFrame();
@@ -176,8 +181,23 @@ void ControlPage::refreshAsrList() {
 
           auto *item = new QListWidgetItem(display, listAsrProviders_);
           item->setData(Qt::UserRole, id);
+          item->setData(Qt::UserRole + 1, type);
         }
       });
+}
+
+void ControlPage::updateAsrButtons() {
+  auto *item = listAsrProviders_->currentItem();
+  if (!item) {
+    btnAsrEdit_->setEnabled(false);
+    btnAsrRemove_->setEnabled(false);
+    btnAsrSetActive_->setEnabled(false);
+    return;
+  }
+  const bool is_local = item->data(Qt::UserRole + 1).toString() == "local";
+  btnAsrEdit_->setEnabled(!is_local);
+  btnAsrRemove_->setEnabled(!is_local);
+  btnAsrSetActive_->setEnabled(true);
 }
 
 void ControlPage::onAsrEdit() {

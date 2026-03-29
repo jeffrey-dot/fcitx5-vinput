@@ -199,6 +199,11 @@ int RunAsrConfigRemove(const std::string &id, Formatter &fmt,
     return 1;
   }
 
+  if (std::holds_alternative<LocalAsrProvider>(*it)) {
+    fmt.PrintError(_("The local ASR provider cannot be removed. It is required for model management."));
+    return 1;
+  }
+
   providers.erase(it);
   if (config.asr.activeProvider == resolved_id) {
     config.asr.activeProvider.clear();
