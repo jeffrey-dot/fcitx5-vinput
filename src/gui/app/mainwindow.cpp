@@ -13,7 +13,6 @@
 #include "pages/hotwords/hotword_page.h"
 #include "pages/llm/llm_page.h"
 #include "pages/resources/resource_page.h"
-#include "pages/scenes/scene_page.h"
 #include "utils/cli_runner.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -29,21 +28,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   controlPage_ = new vinput::gui::ControlPage(this);
   resourcePage_ = new vinput::gui::ResourcePage(this);
   llmPage_ = new vinput::gui::LlmPage(this);
-  scenePage_ = new vinput::gui::ScenePage(this);
   hotwordPage_ = new vinput::gui::HotwordPage(this);
 
   tabWidget_->addTab(controlPage_, tr("Control"));
   tabWidget_->addTab(resourcePage_, tr("Resources"));
   tabWidget_->addTab(llmPage_, tr("LLM"));
-  tabWidget_->addTab(scenePage_, tr("Scenes"));
   tabWidget_->addTab(hotwordPage_, tr("Hotwords"));
 
   // Cross-page refresh: any config change reloads affected pages.
   connect(controlPage_, &vinput::gui::ControlPage::configChanged, this,
           &MainWindow::reloadAll);
   connect(resourcePage_, &vinput::gui::ResourcePage::configChanged, this,
-          &MainWindow::reloadAll);
-  connect(scenePage_, &vinput::gui::ScenePage::configChanged, this,
           &MainWindow::reloadAll);
   connect(llmPage_, &vinput::gui::LlmPage::configChanged, this,
           &MainWindow::reloadAll);
@@ -70,7 +65,6 @@ MainWindow::~MainWindow() = default;
 
 void MainWindow::reloadAll() {
   controlPage_->reload();
-  scenePage_->reload();
   llmPage_->reload();
 }
 

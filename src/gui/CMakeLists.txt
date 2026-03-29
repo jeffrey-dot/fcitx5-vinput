@@ -27,7 +27,6 @@ set(VINPUT_GUI_SOURCES
     dialogs/adapter_dialog.cpp
     pages/control/control_page.cpp
     pages/resources/resource_page.cpp
-    pages/scenes/scene_page.cpp
     pages/llm/llm_page.cpp
     pages/hotwords/hotword_page.cpp
     ${CMAKE_SOURCE_DIR}/src/common/audio/pipewire_device.cpp
@@ -37,7 +36,6 @@ set(VINPUT_GUI_HEADERS
     app/mainwindow.h
     pages/control/control_page.h
     pages/resources/resource_page.h
-    pages/scenes/scene_page.h
     pages/llm/llm_page.h
     pages/hotwords/hotword_page.h
 )

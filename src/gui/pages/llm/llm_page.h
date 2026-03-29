@@ -20,12 +20,17 @@ signals:
 private slots:
   void refreshLlmList();
   void refreshAdapterList();
+  void refreshSceneList();
   void onLlmAdd();
   void onLlmEdit();
   void onLlmRemove();
   void onAdapterEdit();
   void onAdapterStart();
   void onAdapterStop();
+  void onSceneAdd();
+  void onSceneEdit();
+  void onSceneRemove();
+  void onSceneSetActive();
 
 private:
   QListWidget *listProviders_;
@@ -38,6 +43,12 @@ private:
   QPushButton *btnAdapterStart_;
   QPushButton *btnAdapterStop_;
   QPushButton *btnAdapterRefresh_;
+
+  QListWidget *listScenes_;
+  QPushButton *btnSceneAdd_;
+  QPushButton *btnSceneEdit_;
+  QPushButton *btnSceneRemove_;
+  QPushButton *btnSceneSetActive_;
 };
 
 }  // namespace vinput::gui

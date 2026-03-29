@@ -6,7 +6,6 @@
 namespace vinput::gui {
 class ControlPage;
 class ResourcePage;
-class ScenePage;
 class LlmPage;
 class HotwordPage;
 }  // namespace vinput::gui
@@ -28,7 +27,6 @@ private:
 
   vinput::gui::ControlPage *controlPage_;
   vinput::gui::ResourcePage *resourcePage_;
-  vinput::gui::ScenePage *scenePage_;
   vinput::gui::LlmPage *llmPage_;
   vinput::gui::HotwordPage *hotwordPage_;
 };
