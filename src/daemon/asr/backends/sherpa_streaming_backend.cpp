@@ -421,6 +421,10 @@ private:
     } else if (model_info_.family == "paraformer") {
       config.model_config.paraformer.encoder = f_encoder.c_str();
       config.model_config.paraformer.decoder = f_decoder.c_str();
+    } else if (model_info_.family == "nemo_ctc") {
+      config.model_config.nemo_ctc.model = f_model.c_str();
+    } else if (model_info_.family == "t_one_ctc") {
+      config.model_config.t_one_ctc.model = f_model.c_str();
     } else {
       if (error) {
         *error = "Unsupported sherpa-streaming model family '" +
