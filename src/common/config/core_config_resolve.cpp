@@ -160,8 +160,12 @@ bool SetPreferredLocalModel(CoreConfig *config, const std::string &model,
 }
 
 const vinput::scene::Definition *FindCommandScene(const CoreConfig &config) {
-  return vinput::scene::Find({config.scenes.activeScene, config.scenes.definitions},
-                             vinput::scene::kCommandSceneId);
+  for (const auto &scene : config.scenes.definitions) {
+    if (scene.id == vinput::scene::kCommandSceneId) {
+      return &scene;
+    }
+  }
+  return nullptr;
 }
 
 std::filesystem::path ResolveModelBaseDir(const CoreConfig &) {
