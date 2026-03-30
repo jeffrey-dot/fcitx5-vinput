@@ -36,16 +36,15 @@ jobs:
           echo "package_release=1" >> "${GITHUB_OUTPUT}"
           echo "source_archive=fcitx5-vinput-${version}.tar.gz" >> "${GITHUB_OUTPUT}"
 
-      - name: Update flake.nix version
+      - name: Verify VERSION matches release tag
         shell: bash
         run: |
           version="${{ steps.meta.outputs.package_version }}"
-          sed -i "s/version = \".*\";/version = \"${version}\";/" flake.nix
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add flake.nix
-          git diff --cached --quiet || git commit -m "chore(nix): update version to ${version} [skip ci]"
-          git push origin HEAD:main
+          version_file="$(tr -d '\n' < VERSION)"
+          if [[ "${version_file}" != "${version}" ]]; then
+            echo "VERSION file is ${version_file}, but release tag is ${version}" >&2
+            exit 1
+          fi
 
       - name: Create source archive
         shell: bash

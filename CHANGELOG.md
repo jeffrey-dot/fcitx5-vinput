@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.5](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.5) — 2026-03-31
+
+### Bug Fixes
+
+- **ci:** Verify `VERSION` matches manual channels input and release tags
+- **build:** Read project version from the top-level `VERSION` file for CMake and Nix builds
+
+### Features
+
+- **daemon:** Add unified `VINPUT_DEBUG` logging with `[vinput-debug]` labels for ASR, recording, adapter, and LLM tracing
+
 ## [2.0.4](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.4) — 2026-03-30
 
 ### Bug Fixes

@@ -1,6 +1,7 @@
 #include "post_processor.h"
 
 #include "common/llm/defaults.h"
+#include "common/utils/debug_log.h"
 
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
@@ -89,27 +90,25 @@ std::string QuoteForLog(std::string_view text) {
   return std::string(text);
 }
 
-bool DebugRawLlmResponsesEnabled() {
-  const char *value = std::getenv(vinput::llm::kDebugRawResponsesEnv);
-  if (!value) {
-    return false;
-  }
-  return value[0] == '1' || value[0] == 't' || value[0] == 'T' ||
-         value[0] == 'y' || value[0] == 'Y';
-}
-
 void LogResponseSummary(const LlmProvider &provider, const std::string &url,
                         long status_code, double total_time_ms) {
-  fprintf(stderr,
-          "vinput-daemon: LLM request provider=%s url=%s status=%ld time=%.1fms\n",
-          provider.id.empty() ? "(unnamed)" : provider.id.c_str(),
-          url.c_str(), status_code, total_time_ms);
+  vinput::debug::Log(
+      "LLM request provider=%s url=%s status=%ld time=%.1fms\n",
+      provider.id.empty() ? "(unnamed)" : provider.id.c_str(), url.c_str(),
+      status_code, total_time_ms);
+}
+
+void LogLlmInput(const LlmProvider &provider, const std::string &url,
+                 std::string_view text) {
+  vinput::debug::Log("LLM input provider=%s url=%s: %s\n",
+                     provider.id.empty() ? "(unnamed)" : provider.id.c_str(),
+                     url.c_str(), QuoteForLog(text).c_str());
 }
 
 void LogResponseBody(const char *prefix, const std::string &url,
                      std::string_view body) {
-  fprintf(stderr, "vinput-daemon: %s %s: %s\n", prefix, url.c_str(),
-          QuoteForLog(body).c_str());
+  vinput::debug::Log("%s %s: %s\n", prefix, url.c_str(),
+                     QuoteForLog(body).c_str());
 }
 
 std::vector<std::string> ExtractCandidates(const json &response) {
@@ -241,6 +240,10 @@ RewriteWithOpenAiCompatible(const std::string &text,
   const std::string user_content =
       use_markdown_user_input ? BuildUserInputMarkdown(text) : text;
 
+  if (vinput::debug::Enabled()) {
+    LogLlmInput(provider, url, text);
+  }
+
   std::vector<json> messages;
   messages.push_back({{"role", "system"}, {"content", system_content}});
   messages.push_back({{"role", "user"}, {"content", user_content}});
@@ -300,14 +303,14 @@ RewriteWithOpenAiCompatible(const std::string &text,
   if (status_code < 200 || status_code >= 300) {
     const std::string msg =
         "HTTP " + std::to_string(status_code) + ": " + response_body;
-    if (DebugRawLlmResponsesEnabled()) {
+    if (vinput::debug::Enabled()) {
       LogResponseBody("LLM error response from", url, response_body);
     }
     if (error_out) *error_out = msg;
     return std::nullopt;
   }
 
-  if (DebugRawLlmResponsesEnabled()) {
+  if (vinput::debug::Enabled()) {
     LogResponseBody("LLM raw response from", url, response_body);
   }
 
@@ -325,7 +328,7 @@ RewriteWithOpenAiCompatible(const std::string &text,
   if (error_it != response.end()) {
     fprintf(stderr, "vinput-daemon: LLM response from %s contains error\n",
             url.c_str());
-    if (DebugRawLlmResponsesEnabled()) {
+    if (vinput::debug::Enabled()) {
       LogResponseBody("LLM parsed error payload from", url, error_it->dump());
     }
     return std::nullopt;

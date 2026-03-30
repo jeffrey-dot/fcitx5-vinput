@@ -1,6 +1,7 @@
 #include "daemon/asr/runtime/recognition_session_manager.h"
 
 #include "common/i18n.h"
+#include "common/utils/debug_log.h"
 #include "daemon/asr/runtime/backend_factory.h"
 
 #include <utility>
@@ -37,29 +38,30 @@ void LogActiveBackend(const CoreConfig &config) {
   BackendDescriptor descriptor;
   std::string error;
   if (!DescribeActiveBackend(config, &descriptor, &error)) {
-    fprintf(stderr, "vinput-daemon: ASR provider=(missing)\n");
+    vinput::debug::Log("ASR provider=(missing)\n");
     return;
   }
 
-  fprintf(stderr,
-          "vinput-daemon: ASR provider=%s type=%s backend=%s lang=%s\n",
-          descriptor.provider_id.c_str(), descriptor.provider_type.c_str(),
-          descriptor.backend_id.c_str(), config.global.defaultLanguage.c_str());
+  vinput::debug::Log("ASR provider=%s type=%s backend=%s lang=%s\n",
+                     descriptor.provider_id.c_str(),
+                     descriptor.provider_type.c_str(),
+                     descriptor.backend_id.c_str(),
+                     config.global.defaultLanguage.c_str());
 }
 
 void LogRecognitionRequest(const CoreConfig &config, std::size_t sample_count) {
   BackendDescriptor descriptor;
   std::string error;
   if (!DescribeActiveBackend(config, &descriptor, &error)) {
-    fprintf(stderr, "vinput-daemon: ASR request provider=(missing) samples=%zu\n",
-            sample_count);
+    vinput::debug::Log("ASR request provider=(missing) samples=%zu\n",
+                       sample_count);
     return;
   }
 
-  fprintf(stderr,
-          "vinput-daemon: ASR request provider=%s type=%s backend=%s samples=%zu\n",
-          descriptor.provider_id.c_str(), descriptor.provider_type.c_str(),
-          descriptor.backend_id.c_str(), sample_count);
+  vinput::debug::Log("ASR request provider=%s type=%s backend=%s samples=%zu\n",
+                     descriptor.provider_id.c_str(),
+                     descriptor.provider_type.c_str(),
+                     descriptor.backend_id.c_str(), sample_count);
 }
 
 }  // namespace

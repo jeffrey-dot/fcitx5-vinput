@@ -1,6 +1,31 @@
 #include "daemon/runtime/recognition_pipeline.h"
 
 #include "common/dbus/dbus_interface.h"
+#include "common/utils/debug_log.h"
+
+namespace {
+
+constexpr std::size_t kMaxLoggedRecognitionBytes = 2048;
+
+std::string QuoteRecognitionText(std::string_view text) {
+  if (text.size() > kMaxLoggedRecognitionBytes) {
+    std::string truncated(text.substr(0, kMaxLoggedRecognitionBytes));
+    truncated += "...(truncated)";
+    return truncated;
+  }
+  return std::string(text);
+}
+
+void LogRecognizedText(const std::string &text, bool is_command,
+                       std::string_view scene_id) {
+  vinput::debug::Log("recognized text command=%s scene=%s: %s\n",
+                     is_command ? "true" : "false",
+                     scene_id.empty() ? "(default)"
+                                      : std::string(scene_id).c_str(),
+                     QuoteRecognitionText(text).c_str());
+}
+
+}  // namespace
 
 namespace vinput::daemon::runtime {
 
@@ -19,6 +44,10 @@ RecognitionPipelineResult RecognitionPipeline::Process(
 
   if (order.recognized_text.empty()) {
     return output;
+  }
+
+  if (vinput::debug::Enabled()) {
+    LogRecognizedText(order.recognized_text, order.is_command, order.scene_id);
   }
 
   vinput::scene::Config scene_config;

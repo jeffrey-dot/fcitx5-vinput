@@ -2,6 +2,7 @@
 
 #include "common/config/core_config.h"
 #include "common/dbus/dbus_interface.h"
+#include "common/utils/debug_log.h"
 #include "daemon/audio/audio_utils.h"
 
 #include <algorithm>
@@ -22,10 +23,10 @@ constexpr float kNonSilentRmsThreshold = 0.005f;
 void LogRecognitionRequest(
     const vinput::daemon::asr::BackendDescriptor &descriptor,
     std::size_t sample_count) {
-  fprintf(stderr,
-          "vinput-daemon: ASR request provider=%s type=%s backend=%s samples=%zu\n",
-          descriptor.provider_id.c_str(), descriptor.provider_type.c_str(),
-          descriptor.backend_id.c_str(), sample_count);
+  vinput::debug::Log("ASR request provider=%s type=%s backend=%s samples=%zu\n",
+                     descriptor.provider_id.c_str(),
+                     descriptor.provider_type.c_str(),
+                     descriptor.backend_id.c_str(), sample_count);
 }
 
 bool UsesBufferedDelivery(
@@ -89,8 +90,8 @@ DbusService::MethodResult DaemonRuntimeController::StartRecordingInternal(
     bool is_command, const std::string &selected_text) {
   std::lock_guard<std::mutex> lock(state_mutex_);
   if (phase_ != vinput::dbus::Status::Idle) {
-    fprintf(stderr, "vinput-daemon: start rejected (phase: %s)\n",
-            vinput::dbus::StatusToString(phase_));
+    vinput::debug::Log("start rejected (phase: %s)\n",
+                       vinput::dbus::StatusToString(phase_));
     return DbusService::MethodResult::Failure("Daemon is busy.");
   }
 
@@ -143,12 +144,11 @@ DbusService::MethodResult DaemonRuntimeController::StartRecordingInternal(
   dbus_->EmitStatusChanged(
       vinput::dbus::StatusToString(vinput::dbus::Status::Recording));
   if (is_command) {
-    fprintf(stderr,
-            "vinput-daemon: command recording started (selected_text length: "
-            "%zu chars)\n",
-            selected_text.size());
+    vinput::debug::Log(
+        "command recording started (selected_text length: %zu chars)\n",
+        selected_text.size());
   } else {
-    fprintf(stderr, "vinput-daemon: recording started\n");
+    vinput::debug::Log("recording started\n");
   }
   return DbusService::MethodResult::Success();
 }
@@ -173,8 +173,9 @@ void DaemonRuntimeController::HandleIncomingAudio(std::span<const int16_t> pcm) 
   if (!first_non_silent_at_.has_value() &&
       HasNonSilentAudio(pcm_view)) {
     first_non_silent_at_ = std::chrono::steady_clock::now();
-    fprintf(stderr, "vinput-daemon: first non-silent audio after %ld ms\n",
-            MillisecondsSince(recording_started_at_, *first_non_silent_at_));
+    vinput::debug::Log("first non-silent audio after %ld ms\n",
+                       MillisecondsSince(recording_started_at_,
+                                         *first_non_silent_at_));
   }
 
   if (UsesBufferedDelivery(active_backend_)) {
@@ -237,11 +238,10 @@ void DaemonRuntimeController::EmitStreamingEvents(
               first_non_silent_at_.has_value()
                   ? MillisecondsSince(recording_started_at_, *first_non_silent_at_)
                   : -1;
-          fprintf(stderr,
-                  "vinput-daemon: first partial after %ld ms "
-                  "(first_non_silent_after=%ld ms)\n",
-                  MillisecondsSince(recording_started_at_, now),
-                  first_non_silent_ms);
+          vinput::debug::Log(
+              "first partial after %ld ms (first_non_silent_after=%ld ms)\n",
+              MillisecondsSince(recording_started_at_, now),
+              first_non_silent_ms);
         }
         if (latest_partial_text) {
           *latest_partial_text = event.text;
@@ -273,8 +273,8 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
     const std::string &scene_id) {
   std::lock_guard<std::mutex> lock(state_mutex_);
   if (phase_ != vinput::dbus::Status::Recording) {
-    fprintf(stderr, "vinput-daemon: stop rejected (phase: %s)\n",
-            vinput::dbus::StatusToString(phase_));
+    vinput::debug::Log("stop rejected (phase: %s)\n",
+                       vinput::dbus::StatusToString(phase_));
     return DbusService::MethodResult::Failure("Recording is not active.");
   }
 
@@ -283,12 +283,12 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
   accepting_chunks_.store(false, std::memory_order_relaxed);
 
   if (!active_session_) {
-    fprintf(stderr, "vinput-daemon: recording stopped without active session\n");
+    vinput::debug::Log("recording stopped without active session\n");
     phase_ = vinput::dbus::Status::Idle;
     current_order_.reset();
     dbus_->EmitStatusChanged(
         vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
-    fprintf(stderr, "vinput-daemon: phase -> idle\n");
+    vinput::debug::Log("phase -> idle\n");
     return DbusService::MethodResult::Success();
   }
 
@@ -324,31 +324,30 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
         phase_ = vinput::dbus::Status::Idle;
         dbus_->EmitStatusChanged(
             vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
-        fprintf(stderr, "vinput-daemon: phase -> idle\n");
+        vinput::debug::Log("phase -> idle\n");
         return DbusService::MethodResult::Success();
       }
       current_sample_count_ += tail_samples;
       EmitStreamingEvents(active_session_.get());
-      fprintf(stderr,
-              "vinput-daemon: flushed final audio tail chunk samples=%zu "
-              "captured=%zu chunk_size=%zu\n",
-              tail_samples, captured_pcm.size(), kStreamingChunkSamples);
+      vinput::debug::Log(
+          "flushed final audio tail chunk samples=%zu captured=%zu "
+          "chunk_size=%zu\n",
+          tail_samples, captured_pcm.size(), kStreamingChunkSamples);
       pending_chunk_pcm_.clear();
     }
   }
 
   if (current_sample_count_ < vinput::daemon::asr::kMinSamplesForRecognition) {
-    fprintf(stderr,
-            "vinput-daemon: recording too short, skipping inference: "
-            "%zu samples (%.1f ms)\n",
-            current_sample_count_,
-            static_cast<double>(current_sample_count_) * 1000.0 / 16000.0);
+    vinput::debug::Log(
+        "recording too short, skipping inference: %zu samples (%.1f ms)\n",
+        current_sample_count_,
+        static_cast<double>(current_sample_count_) * 1000.0 / 16000.0);
     CancelActiveSession();
     phase_ = vinput::dbus::Status::Idle;
     current_order_.reset();
     dbus_->EmitStatusChanged(
         vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
-    fprintf(stderr, "vinput-daemon: phase -> idle\n");
+    vinput::debug::Log("phase -> idle\n");
     return DbusService::MethodResult::Success();
   }
 
@@ -371,7 +370,7 @@ DbusService::MethodResult DaemonRuntimeController::StopRecording(
   dbus_->EmitStatusChanged(
       vinput::dbus::StatusToString(vinput::dbus::Status::Inferring));
   worker_cv_.notify_one();
-  fprintf(stderr, "vinput-daemon: recording stopped\n");
+  vinput::debug::Log("recording stopped\n");
   return DbusService::MethodResult::Success();
 }
 
@@ -444,7 +443,7 @@ void DaemonRuntimeController::ResetToIdle() {
   }
   dbus_->EmitStatusChanged(
       vinput::dbus::StatusToString(vinput::dbus::Status::Idle));
-  fprintf(stderr, "vinput-daemon: phase -> idle\n");
+  vinput::debug::Log("phase -> idle\n");
 }
 
 void DaemonRuntimeController::WorkerMain() {

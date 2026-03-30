@@ -8,7 +8,6 @@ inline constexpr char kJsonContentTypeHeader[] =
     "Content-Type: application/json";
 inline constexpr char kOpenAiChatCompletionsPath[] = "/chat/completions";
 inline constexpr char kOpenAiModelsPath[] = "/models";
-inline constexpr char kDebugRawResponsesEnv[] = "VINPUT_DEBUG_LLM_RESPONSES";
 inline constexpr char kHttpUserAgent[] = "fcitx5-vinput/0.1";
 inline constexpr int kModelFetchTimeoutMs = 5000;
 

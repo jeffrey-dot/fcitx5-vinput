@@ -5,6 +5,7 @@
 #include "common/i18n.h"
 #include "common/utils/process_utils.h"
 #include "common/asr/recognition_result.h"
+#include "common/utils/debug_log.h"
 #include "common/utils/string_utils.h"
 #include "daemon/asr/runtime/recognition_session_manager.h"
 #include "daemon/runtime/daemon_runtime_controller.h"
@@ -209,8 +210,8 @@ private:
         line.pop_back();
       }
       if (!line.empty()) {
-        fprintf(stderr, "vinput-daemon: adapter[%s] stderr: %s\n",
-                adapter.id.c_str(), line.c_str());
+        vinput::debug::Log("adapter[%s] stderr: %s\n", adapter.id.c_str(),
+                           line.c_str());
         EmitNotification(line);
       }
       start = end + 1;
@@ -220,8 +221,8 @@ private:
     if (flush_partial) {
       std::string line = vinput::str::TrimAsciiWhitespace(adapter.stderr_buffer);
       if (!line.empty()) {
-        fprintf(stderr, "vinput-daemon: adapter[%s] stderr: %s\n",
-                adapter.id.c_str(), line.c_str());
+        vinput::debug::Log("adapter[%s] stderr: %s\n", adapter.id.c_str(),
+                           line.c_str());
         EmitNotification(line);
       }
       adapter.stderr_buffer.clear();
@@ -284,8 +285,8 @@ private:
                                      .stderr_fd = process.stderr_fd,
                                      .stderr_buffer = {},
                                  });
-    fprintf(stderr, "vinput-daemon: adapter started id=%s pid=%d\n",
-            adapter_id.c_str(), static_cast<int>(process.pid));
+    vinput::debug::Log("adapter started id=%s pid=%d\n", adapter_id.c_str(),
+                       static_cast<int>(process.pid));
     return DbusService::MethodResult::Success();
   }
 
@@ -317,7 +318,7 @@ private:
       (void)waitpid(tracked_pid, nullptr, 0);
     }
 
-    fprintf(stderr, "vinput-daemon: adapter stopped id=%s\n", adapter_id.c_str());
+    vinput::debug::Log("adapter stopped id=%s\n", adapter_id.c_str());
     return DbusService::MethodResult::Success();
   }
 
@@ -362,11 +363,11 @@ private:
         adapter.stderr_fd = -1;
       }
 
-      fprintf(stderr, "vinput-daemon: adapter exited id=%s code=%d\n",
-              adapter.id.c_str(),
-              WIFEXITED(status)
-                  ? WEXITSTATUS(status)
-                  : (WIFSIGNALED(status) ? 128 + WTERMSIG(status) : -1));
+      vinput::debug::Log(
+          "adapter exited id=%s code=%d\n", adapter.id.c_str(),
+          WIFEXITED(status)
+              ? WEXITSTATUS(status)
+              : (WIFSIGNALED(status) ? 128 + WTERMSIG(status) : -1));
       exited_ids.push_back(id);
     }
 

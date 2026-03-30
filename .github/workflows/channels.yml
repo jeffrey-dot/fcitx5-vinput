@@ -40,6 +40,12 @@ jobs:
             exit 1
           fi
 
+          version_file="$(tr -d '\n' < VERSION)"
+          if [[ "${version_file}" != "${version}" ]]; then
+            echo "VERSION file is ${version_file}, but channels input is ${version}" >&2
+            exit 1
+          fi
+
           echo "package_version=${version}" >> "${GITHUB_OUTPUT}"
           echo "package_release=1" >> "${GITHUB_OUTPUT}"
           echo "source_archive=fcitx5-vinput-${version}.tar.gz" >> "${GITHUB_OUTPUT}"

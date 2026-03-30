@@ -26,6 +26,8 @@
       pkgsFor = system: import nixpkgs { inherit system; };
     in
     {
+      version = nixpkgs.lib.removeSuffix "\n" (builtins.readFile ./VERSION);
+
       packages = forAllSystems (
         system:
         let
@@ -34,7 +36,7 @@
 
           fcitx5-vinput = pkgs.stdenv.mkDerivation {
             pname = "fcitx5-vinput";
-            version = "2.0.4";
+            inherit version;
             src = self;
 
             nativeBuildInputs = with pkgs; [
