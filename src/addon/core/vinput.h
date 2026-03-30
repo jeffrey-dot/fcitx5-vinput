@@ -25,6 +25,7 @@ struct AsrMenuItem {
   std::string provider_id;
   std::string model_id;
   std::string display_label;
+  std::string search_text;
   bool active;
 };
 
@@ -53,6 +54,7 @@ private:
   void hideAsrMenu();
   bool handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent);
   void reloadAsrMenuItems();
+  void rebuildAsrMenu(fcitx::InputContext *ic);
   void showResultMenu(fcitx::InputContext *ic,
                       const vinput::result::Payload &payload);
   void hideResultMenu();
@@ -126,6 +128,9 @@ private:
   std::string active_scene_id_;
   vinput::scene::Config scene_config_;
   std::vector<AsrMenuItem> asr_menu_items_;
+  std::vector<std::size_t> asr_menu_filtered_indices_;
+  std::string asr_menu_query_;
+  bool asr_menu_filter_mode_ = false;
   std::vector<vinput::result::Candidate> result_candidates_;
   bool result_is_command_ = false;
   std::chrono::steady_clock::time_point last_trigger_time_;

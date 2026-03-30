@@ -3,12 +3,15 @@
 #include "common/config/core_config_types.h"
 #include "common/asr/model_manager.h"
 #include "common/i18n.h"
+#include "common/registry/registry_i18n.h"
 #include "common/scene/postprocess_scene.h"
 
 #include <fcitx/candidatelist.h>
 #include <fcitx/inputcontext.h>
 #include <fcitx/inputpanel.h>
 
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -25,6 +28,34 @@ struct SceneOption {
 std::string SceneMenuTitle() { return _("Choose Postprocess Menu"); }
 
 std::string AsrMenuTitle() { return _("Choose ASR Provider / Model"); }
+
+std::string NormalizeSearchText(std::string text) {
+  std::transform(text.begin(), text.end(), text.begin(), [](unsigned char ch) {
+    return static_cast<char>(std::tolower(ch));
+  });
+  return text;
+}
+
+void PopLastUtf8Char(std::string *text) {
+  if (!text || text->empty()) {
+    return;
+  }
+
+  std::size_t pos = text->size();
+  do {
+    --pos;
+  } while (pos > 0 &&
+           (static_cast<unsigned char>((*text)[pos]) & 0xC0) == 0x80);
+  text->erase(pos);
+}
+
+bool MatchesSearch(const AsrMenuItem &item, const std::string &query) {
+  if (query.empty()) {
+    return true;
+  }
+  return NormalizeSearchText(item.search_text).find(NormalizeSearchText(query)) !=
+         std::string::npos;
+}
 
 std::string ResultMenuTitle(std::size_t count) {
   char buf[128];
@@ -72,6 +103,15 @@ std::string DecoratePagedMenuTitle(const std::string &base_title,
   return base_title + buf;
 }
 
+std::string DecorateFilterTitle(const std::string &base_title,
+                                const std::string &query,
+                                bool filter_mode) {
+  if (!filter_mode && query.empty()) {
+    return base_title;
+  }
+  return base_title + " / " + query;
+}
+
 void SetMenuTitle(fcitx::InputContext *ic, const std::string &base_title,
                   fcitx::CandidateList *candidate_list) {
   if (!ic) {
@@ -81,6 +121,13 @@ void SetMenuTitle(fcitx::InputContext *ic, const std::string &base_title,
   fcitx::Text aux_up;
   aux_up.append(DecoratePagedMenuTitle(base_title, candidate_list));
   ic->inputPanel().setAuxUp(aux_up);
+}
+
+void SetMenuTitle(fcitx::InputContext *ic, const std::string &base_title,
+                  const std::string &query, bool filter_mode,
+                  fcitx::CandidateList *candidate_list) {
+  SetMenuTitle(ic, DecorateFilterTitle(base_title, query, filter_mode),
+               candidate_list);
 }
 
 int DigitSelectionIndex(fcitx::CandidateList *candidate_list, int digit) {
@@ -393,9 +440,13 @@ void VinputEngine::reloadAsrMenuItems() {
   auto core_config = LoadCoreConfig();
   const std::string &active_provider = core_config.asr.activeProvider;
   const std::string active_model = ResolvePreferredLocalModel(core_config);
+  const auto i18n_map = vinput::registry::FetchMergedI18nMap(
+      core_config, vinput::registry::DetectPreferredLocale(), nullptr);
 
   for (const auto &provider : core_config.asr.providers) {
     const std::string &pid = AsrProviderId(provider);
+    const std::string provider_title =
+        vinput::registry::LookupI18n(i18n_map, pid + ".title", pid);
     if (std::holds_alternative<LocalAsrProvider>(provider)) {
       // Enumerate installed models under this local provider
       const auto base_dir = ResolveModelBaseDir(core_config);
@@ -404,26 +455,66 @@ void VinputEngine::reloadAsrMenuItems() {
       for (const auto &summary : models) {
         const bool item_active =
             (pid == active_provider) && (summary.id == active_model);
-        std::string label = summary.id + " [local]";
+        const std::string model_title = vinput::registry::LookupI18n(
+            i18n_map, summary.id + ".title", summary.id);
+        std::string label = model_title + " [local]";
         asr_menu_items_.push_back(AsrMenuItem{
             .provider_id = pid,
             .model_id = summary.id,
             .display_label = label,
+            .search_text = label + " " + summary.id + " " + model_title + " " +
+                           pid + " " + provider_title,
             .active = item_active,
         });
       }
     } else {
       // Command provider — one row
       const bool item_active = (pid == active_provider);
-      std::string label = pid + " [command]";
+      std::string label = provider_title + " [command]";
       asr_menu_items_.push_back(AsrMenuItem{
           .provider_id = pid,
           .model_id = {},
           .display_label = label,
+          .search_text = label + " " + pid + " " + provider_title,
           .active = item_active,
       });
     }
   }
+}
+
+void VinputEngine::rebuildAsrMenu(fcitx::InputContext *ic) {
+  if (!ic) {
+    return;
+  }
+
+  asr_menu_filtered_indices_.clear();
+  for (std::size_t i = 0; i < asr_menu_items_.size(); ++i) {
+    if (MatchesSearch(asr_menu_items_[i], asr_menu_query_)) {
+      asr_menu_filtered_indices_.push_back(i);
+    }
+  }
+
+  auto candidate_list = std::make_unique<fcitx::CommonCandidateList>();
+  candidate_list->setPageSize(kMenuPageSize);
+  candidate_list->setLayoutHint(fcitx::CandidateLayoutHint::Vertical);
+  candidate_list->setCursorPositionAfterPaging(
+      fcitx::CursorPositionAfterPaging::ResetToFirst);
+
+  int active_index = 0;
+  for (std::size_t i = 0; i < asr_menu_filtered_indices_.size(); ++i) {
+    const auto &item = asr_menu_items_[asr_menu_filtered_indices_[i]];
+    if (item.active) {
+      active_index = static_cast<int>(i);
+    }
+    candidate_list->append<AsrCandidateWord>(
+        this, asr_menu_filtered_indices_[i], item.display_label, item.active);
+  }
+  MoveCursorToIndex(candidate_list.get(), active_index);
+
+  SetMenuTitle(ic, AsrMenuTitle(), asr_menu_query_, asr_menu_filter_mode_,
+               candidate_list.get());
+  ic->inputPanel().setCandidateList(std::move(candidate_list));
+  ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
 }
 
 void VinputEngine::showAsrMenu(fcitx::InputContext *ic) {
@@ -434,27 +525,9 @@ void VinputEngine::showAsrMenu(fcitx::InputContext *ic) {
   reloadAsrMenuItems();
   asr_menu_ic_ = ic;
   asr_menu_visible_ = true;
-
-  auto candidate_list = std::make_unique<fcitx::CommonCandidateList>();
-  candidate_list->setPageSize(kMenuPageSize);
-  candidate_list->setLayoutHint(fcitx::CandidateLayoutHint::Vertical);
-  candidate_list->setCursorPositionAfterPaging(
-      fcitx::CursorPositionAfterPaging::ResetToFirst);
-
-  int active_index = 0;
-  for (std::size_t i = 0; i < asr_menu_items_.size(); ++i) {
-    const auto &item = asr_menu_items_[i];
-    if (item.active) {
-      active_index = static_cast<int>(i);
-    }
-    candidate_list->append<AsrCandidateWord>(this, i, item.display_label,
-                                             item.active);
-  }
-  MoveCursorToIndex(candidate_list.get(), active_index);
-
-  SetMenuTitle(ic, AsrMenuTitle(), candidate_list.get());
-  ic->inputPanel().setCandidateList(std::move(candidate_list));
-  ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
+  asr_menu_query_.clear();
+  asr_menu_filter_mode_ = false;
+  rebuildAsrMenu(ic);
 }
 
 void VinputEngine::hideAsrMenu() {
@@ -465,6 +538,9 @@ void VinputEngine::hideAsrMenu() {
   }
 
   asr_menu_visible_ = false;
+  asr_menu_query_.clear();
+  asr_menu_filter_mode_ = false;
+  asr_menu_filtered_indices_.clear();
   fcitx::Text empty;
   asr_menu_ic_->inputPanel().setAuxUp(empty);
   asr_menu_ic_->inputPanel().setCandidateList({});
@@ -487,11 +563,19 @@ bool VinputEngine::handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
         keyEvent.key().checkKeyList(page_prev_keys_) ||
         keyEvent.key().checkKeyList(page_next_keys_) ||
         keyEvent.key().digitSelection() >= 0 ||
+        keyEvent.key().check(FcitxKey_slash) ||
+        keyEvent.key().check(FcitxKey_BackSpace) ||
         keyEvent.key().check(FcitxKey_Up) ||
         keyEvent.key().check(FcitxKey_Down) ||
         keyEvent.key().check(FcitxKey_Return) ||
         keyEvent.key().check(FcitxKey_KP_Enter) ||
         keyEvent.key().check(FcitxKey_Escape)) {
+      keyEvent.filterAndAccept();
+      return true;
+    }
+    if (asr_menu_filter_mode_ &&
+        !fcitx::Key::keySymToUTF8(keyEvent.key().sym()).empty() &&
+        !keyEvent.key().hasModifier()) {
       keyEvent.filterAndAccept();
       return true;
     }
@@ -504,19 +588,60 @@ bool VinputEngine::handleAsrMenuKeyEvent(fcitx::KeyEvent &keyEvent) {
   }
 
   if (keyEvent.key().check(FcitxKey_Escape)) {
+    if (asr_menu_filter_mode_ || !asr_menu_query_.empty()) {
+      asr_menu_query_.clear();
+      asr_menu_filter_mode_ = false;
+      rebuildAsrMenu(asr_menu_ic_);
+      keyEvent.filterAndAccept();
+      return true;
+    }
     hideAsrMenu();
     keyEvent.filterAndAccept();
     return true;
   }
 
+  if (keyEvent.key().check(FcitxKey_slash)) {
+    asr_menu_filter_mode_ = true;
+    rebuildAsrMenu(asr_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (keyEvent.key().check(FcitxKey_BackSpace) && asr_menu_filter_mode_) {
+    if (!asr_menu_query_.empty()) {
+      PopLastUtf8Char(&asr_menu_query_);
+    } else {
+      asr_menu_filter_mode_ = false;
+    }
+    rebuildAsrMenu(asr_menu_ic_);
+    keyEvent.filterAndAccept();
+    return true;
+  }
+
+  if (asr_menu_filter_mode_) {
+    const std::string utf8 = fcitx::Key::keySymToUTF8(keyEvent.key().sym());
+    if (!utf8.empty() && !keyEvent.key().hasModifier()) {
+      asr_menu_query_.append(utf8);
+      rebuildAsrMenu(asr_menu_ic_);
+      keyEvent.filterAndAccept();
+      return true;
+    }
+  }
+
   if (keyEvent.key().checkKeyList(page_prev_keys_)) {
-    ChangeCandidatePage(asr_menu_ic_, AsrMenuTitle(), false);
+    ChangeCandidatePage(
+        asr_menu_ic_,
+        DecorateFilterTitle(AsrMenuTitle(), asr_menu_query_, asr_menu_filter_mode_),
+        false);
     keyEvent.filterAndAccept();
     return true;
   }
 
   if (keyEvent.key().checkKeyList(page_next_keys_)) {
-    ChangeCandidatePage(asr_menu_ic_, AsrMenuTitle(), true);
+    ChangeCandidatePage(
+        asr_menu_ic_,
+        DecorateFilterTitle(AsrMenuTitle(), asr_menu_query_, asr_menu_filter_mode_),
+        true);
     keyEvent.filterAndAccept();
     return true;
   }
