@@ -16,9 +16,12 @@ case "${target}" in
     ubuntu24.04)
         "${sudo_cmd[@]}" apt-get update
         "${sudo_cmd[@]}" apt-get install -y \
+            clang \
             cmake \
+            mold \
             ninja-build \
             pkg-config \
+            sccache \
             gettext \
             curl \
             libcurl4-openssl-dev \
@@ -38,10 +41,12 @@ case "${target}" in
         apt-get update
         apt-get install -y \
             bzip2 \
+            clang \
             cmake \
-            g++ \
+            mold \
             ninja-build \
             pkg-config \
+            sccache \
             gettext \
             file \
             git \
@@ -61,11 +66,13 @@ case "${target}" in
         ;;
     fedora43)
         "${sudo_cmd[@]}" dnf install -y \
+            clang \
             cmake \
+            mold \
             ninja-build \
             pkgconf-pkg-config \
+            sccache \
             gettext \
-            gcc-c++ \
             curl \
             libcurl-devel \
             openssl-devel \
@@ -81,11 +88,13 @@ case "${target}" in
     archlinux)
         pacman -Syu --noconfirm --needed \
             cli11 \
+            clang \
             cmake \
             curl \
             fcitx5 \
             git \
             libarchive \
+            mold \
             ninja \
             nlohmann-json \
             openssl \
@@ -93,6 +102,7 @@ case "${target}" in
             pkgconf \
             qt5-base \
             qt5-tools \
+            sccache \
             systemd
         ;;
     *)

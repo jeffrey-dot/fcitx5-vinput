@@ -136,8 +136,8 @@ in
 
 ```bash
 sudo bash scripts/build-sherpa-onnx.sh
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+cmake --preset release-clang-mold
+cmake --build --preset release-clang-mold
 sudo cmake --install build
 ```
 

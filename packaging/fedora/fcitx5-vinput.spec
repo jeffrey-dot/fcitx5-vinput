@@ -14,7 +14,8 @@ Source1:        sherpa-onnx-v%{sherpa_onnx_ver}-linux-x64-shared-no-tts.tar.bz2
 
 BuildRequires:  cmake >= 3.16
 BuildRequires:  ninja-build
-BuildRequires:  gcc-c++
+BuildRequires:  clang
+BuildRequires:  mold
 BuildRequires:  pkgconfig
 BuildRequires:  gettext
 BuildRequires:  cmake(Fcitx5Core)
@@ -50,9 +51,14 @@ via any OpenAI-compatible API.
 %autosetup -n %{name}-%{version}
 
 %build
+export CC=clang
+export CXX=clang++
 bash scripts/build-sherpa-onnx.sh %{sherpa_onnx_ver} %{_builddir}/sherpa-onnx-install %{SOURCE1}
 %cmake -G Ninja \
     -DCMAKE_PREFIX_PATH=%{_builddir}/sherpa-onnx-install \
+    -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold \
+    -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold \
+    -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=mold \
     -DVINPUT_PROJECT_VERSION=%{version} \
     -DVINPUT_PACKAGE_RELEASE=%{release} \
     -DVINPUT_PACKAGE_HOMEPAGE_URL=%{url}

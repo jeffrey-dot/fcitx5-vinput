@@ -3,7 +3,9 @@ Section: utils
 Priority: optional
 Maintainer: xifan233 <xifan2333@gmail.com>
 Build-Depends: debhelper-compat (= 13),
+               clang,
                cmake (>= 3.16),
+               mold,
                ninja-build,
                pkg-config,
                gettext,

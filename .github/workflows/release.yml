@@ -12,6 +12,10 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SCCACHE_DIR: ${{ github.workspace }}/.sccache
+  SCCACHE_CACHE_SIZE: 2G
+
 jobs:
   source_archive:
     runs-on: ubuntu-latest
@@ -84,20 +88,26 @@ jobs:
             "${SHERPA_ONNX_VERSION}" "${prefix}"
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
 
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-release-tarball-${{ github.ref_name }}
+          restore-keys: |
+            sccache-release-tarball-
+
       - name: Configure
         run: |
-          cmake -S "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}" -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/usr \
-            -DCMAKE_PREFIX_PATH="${VINPUT_CMAKE_PREFIX_PATH}" \
+          cd "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}"
+          cmake --preset ci-clang-mold \
             -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
             -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
             -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}" \
             -DVINPUT_RUNTIME_MODE=bundled
 
       - name: Build
-        run: cmake --build build
+        run: |
+          cd "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}"
+          cmake --build --preset ci-clang-mold
 
       - name: Package tarball
         shell: bash
@@ -107,10 +117,11 @@ jobs:
           mode="bundled"
           stage_root="${RUNNER_TEMP}/stage"
           archive_root="fcitx5-vinput_${version}-${release}_linux_x86_64_${mode}"
+          build_root="${GITHUB_WORKSPACE}/fcitx5-vinput-${version}/build"
 
           rm -rf "${stage_root}" dist/release
           mkdir -p "${stage_root}" dist/release
-          DESTDIR="${stage_root}" cmake --install build
+          DESTDIR="${stage_root}" cmake --install "${build_root}"
           mv "${stage_root}/usr" "dist/release/${archive_root}"
           tar -C dist/release -czf "dist/${archive_root}.tar.gz" "${archive_root}"
 
@@ -140,20 +151,25 @@ jobs:
           sudo bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
           sudo ldconfig
 
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-release-deb-ubuntu24.04-${{ github.ref_name }}
+          restore-keys: |
+            sccache-release-deb-ubuntu24.04-
+
       - name: Build Debian package
         shell: bash
         run: |
-          cmake -S "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}" -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/usr \
+          cd "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}"
+          cmake --preset ci-clang-mold \
             -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
             -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
             -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
             -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}"
 
-          cmake --build build
-          cpack --config build/CPackConfig.cmake -G DEB -B dist
+          cmake --build --preset ci-clang-mold
+          cpack --config build/CPackConfig.cmake -G DEB -B "${GITHUB_WORKSPACE}/dist"
 
       - uses: actions/upload-artifact@v6
         with:
@@ -183,20 +199,25 @@ jobs:
           bash "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}/scripts/build-sherpa-onnx.sh"
           ldconfig
 
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-release-debian12-${{ github.ref_name }}
+          restore-keys: |
+            sccache-release-debian12-
+
       - name: Build Debian package
         shell: bash
         run: |
-          cmake -S "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}" -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/usr \
+          cd "fcitx5-vinput-${{ needs.source_archive.outputs.package_version }}"
+          cmake --preset ci-clang-mold \
             -DVINPUT_PROJECT_VERSION="${{ needs.source_archive.outputs.package_version }}" \
             -DVINPUT_PACKAGE_RELEASE="${{ needs.source_archive.outputs.package_release }}" \
             -DVINPUT_PACKAGE_CONTACT="${{ github.repository_owner }} <noreply@github.com>" \
             -DVINPUT_PACKAGE_HOMEPAGE_URL="${{ github.server_url }}/${{ github.repository }}"
 
-          cmake --build build
-          cpack --config build/CPackConfig.cmake -G DEB -B dist
+          cmake --build --preset ci-clang-mold
+          cpack --config build/CPackConfig.cmake -G DEB -B "${GITHUB_WORKSPACE}/dist"
 
       - uses: actions/upload-artifact@v6
         with:

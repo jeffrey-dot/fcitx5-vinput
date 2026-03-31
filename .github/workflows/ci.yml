@@ -11,6 +11,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SCCACHE_DIR: ${{ github.workspace }}/.sccache
+  SCCACHE_CACHE_SIZE: 2G
+
 jobs:
   build-ubuntu:
     runs-on: ubuntu-24.04
@@ -28,17 +32,21 @@ jobs:
           bash scripts/build-sherpa-onnx.sh "${SHERPA_ONNX_VERSION}" "${prefix}"
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
 
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-ci-ubuntu24.04-${{ github.ref_name }}
+          restore-keys: |
+            sccache-ci-ubuntu24.04-
+
       - name: Check i18n
         run: python3 scripts/check-i18n.py
 
       - name: Configure
-        run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="${VINPUT_CMAKE_PREFIX_PATH}"
+        run: cmake --preset ci-clang-mold
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build --preset ci-clang-mold
 
   build-containers:
     strategy:
@@ -72,14 +80,18 @@ jobs:
           bash scripts/build-sherpa-onnx.sh "${SHERPA_ONNX_VERSION}" "${prefix}"
           echo "VINPUT_CMAKE_PREFIX_PATH=${prefix}" >> "${GITHUB_ENV}"
 
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-ci-${{ matrix.target }}-${{ github.ref_name }}
+          restore-keys: |
+            sccache-ci-${{ matrix.target }}-
+
       - name: Configure
-        run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="${VINPUT_CMAKE_PREFIX_PATH}"
+        run: cmake --preset ci-clang-mold
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build --preset ci-clang-mold
 
   build-nix:
     runs-on: ubuntu-latest

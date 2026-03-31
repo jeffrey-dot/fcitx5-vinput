@@ -1,0 +1,67 @@
+{
+  "version": 4,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 23,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "/usr",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "release-clang-mold",
+      "displayName": "Release (clang + mold)",
+      "inherits": "base",
+      "environment": {
+        "CC": "clang",
+        "CXX": "clang++"
+      },
+      "cacheVariables": {
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_MODULE_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_PREFIX_PATH": "$env{VINPUT_CMAKE_PREFIX_PATH}"
+      }
+    },
+    {
+      "name": "debug-clang-mold",
+      "displayName": "Debug (clang + mold)",
+      "inherits": "release-clang-mold",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "ci-clang-mold",
+      "displayName": "CI Release (clang + mold + sccache)",
+      "inherits": "release-clang-mold",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER_LAUNCHER": "sccache",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "sccache"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release-clang-mold",
+      "configurePreset": "release-clang-mold"
+    },
+    {
+      "name": "debug-clang-mold",
+      "configurePreset": "debug-clang-mold"
+    },
+    {
+      "name": "ci-clang-mold",
+      "configurePreset": "ci-clang-mold"
+    }
+  ]
+}

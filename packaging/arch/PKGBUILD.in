@@ -7,7 +7,7 @@ url='@VINPUT_PKGURL@'
 license=('GPL3')
 options=(!debug)
 depends=('curl' 'fcitx5' 'libarchive' 'openssl' 'pipewire' 'qt5-base' 'systemd-libs')
-makedepends=('cli11' 'cmake' 'ninja' 'nlohmann-json' 'pkgconf' 'qt5-tools' 'systemd')
+makedepends=('clang' 'cli11' 'cmake' 'mold' 'ninja' 'nlohmann-json' 'pkgconf' 'qt5-tools' 'systemd')
 source=('@VINPUT_SOURCE_ARCHIVE@')
 sha256sums=('@VINPUT_SOURCE_SHA256@')
 
@@ -15,6 +15,8 @@ _sherpa_onnx_ver=@SHERPA_ONNX_VERSION@
 
 build() {
     local src_root="${srcdir}/${pkgname}-${pkgver}"
+    export CC=clang
+    export CXX=clang++
 
     # Install pre-built sherpa-onnx for the package build.
     bash "${src_root}/scripts/build-sherpa-onnx.sh" \
@@ -24,6 +26,9 @@ build() {
         -DCMAKE_BUILD_TYPE=None \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DCMAKE_PREFIX_PATH="${srcdir}/sherpa-onnx-install" \
+        -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold \
+        -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold \
+        -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=mold \
         -DVINPUT_PROJECT_VERSION="${pkgver}" \
         -DVINPUT_PACKAGE_RELEASE="${pkgrel}" \
         -DVINPUT_PACKAGE_HOMEPAGE_URL="${url}"
