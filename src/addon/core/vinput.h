@@ -66,9 +66,9 @@ private:
   void finishStopRecording();
   void restartDaemon();
   void setupDBusWatcher();
-  void callStartRecording();
-  void callStartCommandRecording(const std::string &selected_text);
-  void callStopRecording(const std::string &scene_id);
+  bool callStartRecording();
+  bool callStartCommandRecording(const std::string &selected_text);
+  bool callStopRecording(const std::string &scene_id);
   void onRecognitionResult(fcitx::dbus::Message &msg);
   void onRecognitionPartial(fcitx::dbus::Message &msg);
   void onStatusChanged(fcitx::dbus::Message &msg);
@@ -87,6 +87,9 @@ private:
   void finishFrontendSession(fcitx::InputContext *fallback_ic = nullptr);
   void syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic = nullptr,
                                     bool prefer_command_mode = false);
+  void rememberInputContext(fcitx::InputContext *ic);
+  fcitx::InputContext *resolveFrontendInputContext(
+      fcitx::InputContext *fallback_ic = nullptr) const;
   void updatePreedit(fcitx::InputContext *ic, const std::string &text);
   void clearPreedit(fcitx::InputContext *ic);
 
@@ -110,6 +113,7 @@ private:
   };
   std::optional<Session> session_;
   fcitx::InputContext *status_ic_ = nullptr;
+  fcitx::InputContext *last_active_ic_ = nullptr;
   fcitx::InputContext *scene_menu_ic_ = nullptr;
   fcitx::InputContext *asr_menu_ic_ = nullptr;
   fcitx::InputContext *result_menu_ic_ = nullptr;

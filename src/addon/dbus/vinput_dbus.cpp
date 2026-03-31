@@ -284,9 +284,10 @@ void VinputEngine::setupDBusWatcher() {
       });
 }
 
-void VinputEngine::callStartRecording() {
-  if (!bus_)
-    return;
+bool VinputEngine::callStartRecording() {
+  if (!bus_) {
+    return false;
+  }
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodStartRecording);
   auto reply = msg.call(kDaemonCallTimeoutUsec);
@@ -294,12 +295,15 @@ void VinputEngine::callStartRecording() {
     fprintf(stderr, "vinput: StartRecording rejected by daemon\n");
     syncFrontendWithDaemonStatus(session_ ? session_->ic : status_ic_,
                                  false);
+    return false;
   }
+  return true;
 }
 
-void VinputEngine::callStartCommandRecording(const std::string &selected_text) {
-  if (!bus_)
-    return;
+bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
+  if (!bus_) {
+    return false;
+  }
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodStartCommandRecording);
   msg << selected_text;
@@ -308,12 +312,15 @@ void VinputEngine::callStartCommandRecording(const std::string &selected_text) {
     fprintf(stderr, "vinput: StartCommandRecording rejected by daemon\n");
     syncFrontendWithDaemonStatus(session_ ? session_->ic : status_ic_,
                                  true);
+    return false;
   }
+  return true;
 }
 
-void VinputEngine::callStopRecording(const std::string &scene_id) {
-  if (!bus_)
-    return;
+bool VinputEngine::callStopRecording(const std::string &scene_id) {
+  if (!bus_) {
+    return false;
+  }
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodStopRecording);
   msg << scene_id;
@@ -322,7 +329,9 @@ void VinputEngine::callStopRecording(const std::string &scene_id) {
     fprintf(stderr, "vinput: StopRecording rejected by daemon\n");
     syncFrontendWithDaemonStatus(session_ ? session_->ic : status_ic_,
                                  session_ ? session_->command_mode : false);
+    return false;
   }
+  return true;
 }
 
 void VinputEngine::ensureStatusSync() {
@@ -363,6 +372,7 @@ void VinputEngine::enterRecordingState(fcitx::InputContext *ic,
   if (!ic) {
     return;
   }
+  rememberInputContext(ic);
   if (status_ic_ && status_ic_ != ic) {
     clearPreedit(status_ic_);
   }
@@ -389,6 +399,7 @@ void VinputEngine::enterBusyState(fcitx::InputContext *ic, bool command_mode,
   if (!ic) {
     return;
   }
+  rememberInputContext(ic);
   if (status_ic_ && status_ic_ != ic) {
     clearPreedit(status_ic_);
   }
@@ -442,8 +453,7 @@ std::string VinputEngine::queryDaemonStatus() const {
 void VinputEngine::syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic,
                                                 bool prefer_command_mode) {
   const std::string status = queryDaemonStatus();
-  auto *ic = session_ ? session_->ic
-                      : (fallback_ic ? fallback_ic : status_ic_);
+  auto *ic = resolveFrontendInputContext(fallback_ic);
   if (!ic) {
     return;
   }
@@ -501,20 +511,18 @@ void VinputEngine::onRecognitionResult(fcitx::dbus::Message &msg) {
 
   const bool has_session = session_.has_value();
   const bool is_command = has_session && session_->command_mode;
-  auto *ic = has_session ? session_->ic : status_ic_;
+  auto *ic = resolveFrontendInputContext();
 
   if (!ic) {
     return;
   }
 
+  rememberInputContext(ic);
+
   hideResultMenu();
 
   const auto payload = vinput::result::Parse(payload_text);
   finishFrontendSession(ic);
-
-  if (!has_session) {
-    return;
-  }
 
   if (payload.commitText.empty()) {
     return;
@@ -549,19 +557,25 @@ void VinputEngine::onRecognitionPartial(fcitx::dbus::Message &msg) {
   std::string partial_text;
   msg >> partial_text;
 
-  auto *ic = session_ ? session_->ic : status_ic_;
-  if (!ic || !session_) {
+  auto *ic = resolveFrontendInputContext();
+  if (!ic) {
     return;
   }
 
-  session_->partial_text = std::move(partial_text);
-  if (!session_->partial_text.empty()) {
+  rememberInputContext(ic);
+
+  if (session_) {
+    session_->partial_text = partial_text;
+  }
+  if (!partial_text.empty()) {
     updatePreedit(ic, ComposeLivePreedit(
-                          session_->command_mode,
-                          session_->phase == Session::Phase::Recording,
-                          session_->partial_text,
-                          session_->command_mode ? CommandingPreeditText()
-                                                 : RecordingPreeditText()));
+                          session_ ? session_->command_mode : false,
+                          session_ &&
+                              session_->phase == Session::Phase::Recording,
+                          partial_text,
+                          session_ && session_->command_mode
+                              ? CommandingPreeditText()
+                              : RecordingPreeditText()));
   }
 }
 
@@ -569,9 +583,11 @@ void VinputEngine::onStatusChanged(fcitx::dbus::Message &msg) {
   std::string status;
   msg >> status;
 
-  auto *ic = session_ ? session_->ic : status_ic_;
+  auto *ic = resolveFrontendInputContext();
   if (!ic)
     return;
+
+  rememberInputContext(ic);
 
   if (status == kStatusRecording) {
     enterRecordingState(ic, session_ ? session_->trigger : fcitx::Key(),
@@ -599,7 +615,7 @@ void VinputEngine::onDaemonNotification(fcitx::dbus::Message &msg) {
   }
 
   if (IsErrorLikeNotification(notification)) {
-    auto *ic = session_ ? session_->ic : status_ic_;
+    auto *ic = resolveFrontendInputContext();
     hideResultMenu();
     finishFrontendSession(ic);
   }

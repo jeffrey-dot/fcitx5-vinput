@@ -28,6 +28,7 @@ std::string CommandNoProviderPreeditText() { return _("No LLM provider configure
 
 void VinputEngine::handleKeyEvent(fcitx::Event &event) {
   auto &keyEvent = static_cast<fcitx::KeyEvent &>(event);
+  rememberInputContext(keyEvent.inputContext());
 
   if (result_menu_visible_ && handleResultMenuKeyEvent(keyEvent)) {
     return;
@@ -101,6 +102,14 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
     auto trigger = is_trigger ? trigger_keys_[trigger_index]
                               : command_keys_[command_index];
     const std::string daemon_status = queryDaemonStatus();
+    if (is_trigger && !session_ &&
+        daemon_status == vinput::dbus::kStatusRecording) {
+      hideResultMenu();
+      enterRecordingState(ic, trigger, false);
+      finishStopRecording();
+      keyEvent.filterAndAccept();
+      return;
+    }
     if (!daemon_status.empty() && daemon_status != vinput::dbus::kStatusIdle) {
       syncFrontendWithDaemonStatus(ic, is_command);
       keyEvent.filterAndAccept();
@@ -160,13 +169,15 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       }
       enterRecordingState(ic, trigger, true);
       FCITX_LOG(Info) << "vinput: command key pressed, selected_text length=" << selected_text.size();
-      callStartCommandRecording(selected_text);
-      syncFrontendWithDaemonStatus(ic, true);
+      if (!callStartCommandRecording(selected_text)) {
+        finishFrontendSession(ic);
+      }
     } else {
       enterRecordingState(ic, trigger, false);
       FCITX_LOG(Info) << "vinput: trigger key pressed";
-      callStartRecording();
-      syncFrontendWithDaemonStatus(ic, false);
+      if (!callStartRecording()) {
+        finishFrontendSession(ic);
+      }
     }
     keyEvent.filterAndAccept();
     return;

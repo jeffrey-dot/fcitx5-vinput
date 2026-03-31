@@ -91,11 +91,12 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
   eventHandlers_.emplace_back(instance_->watchEvent(
       fcitx::EventType::InputContextCreated,
       fcitx::EventWatcherPhase::PreInputMethod,
-      [](fcitx::Event &event) {
+      [this](fcitx::Event &event) {
         auto &icEvent = static_cast<fcitx::InputContextEvent &>(event);
         auto *ic = icEvent.inputContext();
         ic->setCapabilityFlags(ic->capabilityFlags() |
                                fcitx::CapabilityFlag::SurroundingText);
+        rememberInputContext(ic);
       }));
 
   eventHandlers_.emplace_back(instance_->watchEvent(
@@ -110,6 +111,9 @@ VinputEngine::VinputEngine(fcitx::Instance *instance) : instance_(instance) {
         if (status_ic_ == ic) {
           status_ic_ = nullptr;
           stopStatusSyncIfIdle();
+        }
+        if (last_active_ic_ == ic) {
+          last_active_ic_ = nullptr;
         }
         if (scene_menu_ic_ == ic) {
           hideSceneMenu();
@@ -179,6 +183,27 @@ void VinputEngine::reloadSceneConfig() {
 
 void VinputEngine::rebuildUiConfig() const {
   ui_config_ = std::make_unique<VinputConfig>(settings_);
+}
+
+void VinputEngine::rememberInputContext(fcitx::InputContext *ic) {
+  if (!ic) {
+    return;
+  }
+  last_active_ic_ = ic;
+}
+
+fcitx::InputContext *VinputEngine::resolveFrontendInputContext(
+    fcitx::InputContext *fallback_ic) const {
+  if (session_) {
+    return session_->ic;
+  }
+  if (status_ic_) {
+    return status_ic_;
+  }
+  if (fallback_ic) {
+    return fallback_ic;
+  }
+  return last_active_ic_;
 }
 
 fcitx::AddonInstance *

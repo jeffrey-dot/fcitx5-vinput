@@ -428,6 +428,7 @@ void VinputEngine::rebuildSceneMenu(fcitx::InputContext *ic) {
     return;
   }
 
+  std::string active_label;
   auto candidate_list = std::make_unique<fcitx::CommonCandidateList>();
   candidate_list->setPageSize(kMenuPageSize);
   candidate_list->setLayoutHint(fcitx::CandidateLayoutHint::Vertical);
@@ -439,29 +440,26 @@ void VinputEngine::rebuildSceneMenu(fcitx::InputContext *ic) {
   for (std::size_t i = 0; i < scene_config_.scenes.size(); ++i) {
     const auto &scene = scene_config_.scenes[i];
     const std::string label = vinput::scene::DisplayLabel(scene);
+    const bool active = scene.id == active_scene_id_;
+    if (active) {
+      active_label = label;
+    }
     scene_options.push_back(SceneOption{
         .index = i,
         .display_label = label,
         .search_text = label + " " + scene.id,
     });
+    if (active) {
+      continue;
+    }
     if (MatchesSearch(scene_options.back(), scene_menu_query_)) {
       scene_menu_filtered_indices_.push_back(i);
     }
   }
 
-  int active_index = 0;
-  std::string active_label;
-  for (std::size_t i = 0; i < scene_menu_filtered_indices_.size(); ++i) {
-    const std::size_t scene_index = scene_menu_filtered_indices_[i];
-    const auto &scene = scene_config_.scenes[scene_index];
-    const bool active = scene.id == active_scene_id_;
-    if (active) {
-      active_index = static_cast<int>(i);
-      active_label = scene_options[scene_index].display_label;
-    }
+  for (const std::size_t scene_index : scene_menu_filtered_indices_) {
     candidate_list->append<SceneCandidateWord>(this, scene_options[scene_index]);
   }
-  MoveCursorToIndex(candidate_list.get(), active_index);
 
   SetMenuTitle(ic, SceneMenuTitle(), scene_menu_query_, scene_menu_filter_mode_,
                candidate_list.get());
@@ -731,9 +729,15 @@ void VinputEngine::rebuildAsrMenu(fcitx::InputContext *ic) {
     return;
   }
 
+  std::string active_label;
   asr_menu_filtered_indices_.clear();
   for (std::size_t i = 0; i < asr_menu_items_.size(); ++i) {
-    if (MatchesSearch(asr_menu_items_[i], asr_menu_query_)) {
+    const auto &item = asr_menu_items_[i];
+    if (item.active) {
+      active_label = item.display_label;
+      continue;
+    }
+    if (MatchesSearch(item, asr_menu_query_)) {
       asr_menu_filtered_indices_.push_back(i);
     }
   }
@@ -744,18 +748,11 @@ void VinputEngine::rebuildAsrMenu(fcitx::InputContext *ic) {
   candidate_list->setCursorPositionAfterPaging(
       fcitx::CursorPositionAfterPaging::ResetToFirst);
 
-  int active_index = 0;
-  std::string active_label;
-  for (std::size_t i = 0; i < asr_menu_filtered_indices_.size(); ++i) {
-    const auto &item = asr_menu_items_[asr_menu_filtered_indices_[i]];
-    if (item.active) {
-      active_index = static_cast<int>(i);
-      active_label = item.display_label;
-    }
+  for (const std::size_t item_index : asr_menu_filtered_indices_) {
+    const auto &item = asr_menu_items_[item_index];
     candidate_list->append<AsrCandidateWord>(
-        this, asr_menu_filtered_indices_[i], item.display_label);
+        this, item_index, item.display_label);
   }
-  MoveCursorToIndex(candidate_list.get(), active_index);
 
   SetMenuTitle(ic, AsrMenuTitle(), asr_menu_query_, asr_menu_filter_mode_,
                candidate_list.get());
