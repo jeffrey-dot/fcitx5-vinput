@@ -29,15 +29,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1774322989,
-        "narHash": "sha256-lkWj3XKy1KjUbQc5wHbYjDglPMTyKiCnQjpQrDNV3bo=",
-        "owner": "kakapt",
+        "lastModified": 1774532002,
+        "narHash": "sha256-03E18QRA91qofIZIXQNYGWshhsDbKwtIY11LeBBwAtc=",
+        "owner": "xifan2333",
         "repo": "sherpa-onnx-flake",
-        "rev": "d80186c1dd1d52cb542fcf62cbea077692a087b3",
+        "rev": "46d46e947ef572db665797987fc4e9288471e7fa",
         "type": "github"
       },
       "original": {
-        "owner": "kakapt",
+        "owner": "xifan2333",
         "repo": "sherpa-onnx-flake",
         "type": "github"
       }

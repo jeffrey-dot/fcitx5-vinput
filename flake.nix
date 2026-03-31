@@ -61,11 +61,19 @@
               cli11
               sherpa-deps.sherpa-onnx
               sherpa-deps.nlohmann_json
+              clang
+              mold
             ];
 
             cmakeFlags = [
               "-DVINPUT_FETCH_CLI11=OFF"
               "-DCMAKE_BUILD_TYPE=Release"
+              "-DCMAKE_C_COMPILER=clang"
+              "-DCMAKE_CXX_COMPILER=clang++"
+              "-DCMAKE_LINKER=mold"
+              "-DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold"
+              "-DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold"
+
             ];
 
             postInstall = ''
