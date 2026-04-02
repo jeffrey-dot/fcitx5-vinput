@@ -11,7 +11,7 @@ vosk_set_vars() {
     VOSK_VERSION="${version}"
     VOSK_PKGREL="${pkgrel}"
     VOSK_ARCHIVE="vosk-api-${version}-${pkgrel}-x86_64.pkg.tar.zst"
-    VOSK_URL="https://geo.mirror.pkgbuild.com/extra/os/x86_64/${VOSK_ARCHIVE}"
+    VOSK_URL="https://archive.archlinux.org/packages/v/vosk-api/${VOSK_ARCHIVE}"
     VOSK_SHA256=""
 
     case "${version}-${pkgrel}" in

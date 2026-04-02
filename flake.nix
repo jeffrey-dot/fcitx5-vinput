@@ -39,7 +39,7 @@
             pname = "vosk-api";
             version = "0.3.50";
             src = pkgs.fetchurl {
-              url = "https://geo.mirror.pkgbuild.com/extra/os/x86_64/vosk-api-0.3.50-7-x86_64.pkg.tar.zst";
+              url = "https://archive.archlinux.org/packages/v/vosk-api/vosk-api-0.3.50-7-x86_64.pkg.tar.zst";
               sha256 = "80aae4295523c3849fd6f290882085976305ec8a3ad55a1a8211c4896b7a08b7";
             };
             nativeBuildInputs = [ pkgs.zstd ];
