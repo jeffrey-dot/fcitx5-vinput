@@ -3,7 +3,6 @@
 #include <QDir>
 #include <QLocale>
 #include <QStandardPaths>
-#include <QStyleFactory>
 #include <QTranslator>
 
 namespace {
@@ -54,31 +53,12 @@ bool TryLoadTranslation(QTranslator &translator, const QString &base_name) {
   return false;
 }
 
-void SanitizeStyleOverrideEnv() {
-  const QByteArray style_override = qgetenv("QT_STYLE_OVERRIDE");
-  if (style_override.isEmpty()) {
-    return;
-  }
-
-  const QString requested = QString::fromUtf8(style_override);
-  const QStringList available = QStyleFactory::keys();
-  const bool valid =
-      std::any_of(available.begin(), available.end(),
-                  [&requested](const QString &name) {
-                    return name.compare(requested, Qt::CaseInsensitive) == 0;
-                  });
-  if (!valid) {
-    qunsetenv("QT_STYLE_OVERRIDE");
-  }
-}
-
 } // namespace
 
 int main(int argc, char *argv[]) {
   // Set IM environment for this process only, so Chinese input works in the GUI
   setenv("QT_IM_MODULE", "fcitx", 0);
   setenv("XMODIFIERS", "@im=fcitx", 0);
-  SanitizeStyleOverrideEnv();
 
   QApplication app(argc, argv);
 
