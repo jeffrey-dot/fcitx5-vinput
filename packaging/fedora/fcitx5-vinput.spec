@@ -1,5 +1,6 @@
 %global sherpa_onnx_ver @SHERPA_ONNX_VERSION@
 %global vosk_ver @VOSK_VERSION@
+%global vosk_pkgrel @VOSK_PKGREL@
 %global __provides_exclude_from ^%{_libdir}/fcitx5-vinput/.*$
 %global __requires_exclude_from ^%{_libdir}/fcitx5-vinput/.*$
 %global __requires_exclude ^lib(onnxruntime|sherpa-onnx-c-api|sherpa-onnx-cxx-api)\\.so(\\(.*\\))?$
@@ -12,7 +13,7 @@ License:        GPL-3.0-only
 URL:            https://github.com/xifan2333/fcitx5-vinput
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 Source1:        sherpa-onnx-v%{sherpa_onnx_ver}-linux-x64-shared-no-tts.tar.bz2
-Source2:        vosk-linux-x86_64-%{vosk_ver}.zip
+Source2:        vosk-api-%{vosk_ver}-%{vosk_pkgrel}-x86_64.pkg.tar.zst
 
 BuildRequires:  cmake >= 3.16
 BuildRequires:  ninja-build

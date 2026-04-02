@@ -24,7 +24,7 @@ case "${target}" in
             sccache \
             gettext \
             curl \
-            unzip \
+            zstd \
             libcurl4-openssl-dev \
             libssl-dev \
             libarchive-dev \
@@ -52,7 +52,7 @@ case "${target}" in
             file \
             git \
             curl \
-            unzip \
+            zstd \
             libcurl4-openssl-dev \
             libssl-dev \
             libarchive-dev \
@@ -76,7 +76,7 @@ case "${target}" in
             sccache \
             gettext \
             curl \
-            unzip \
+            zstd \
             libcurl-devel \
             openssl-devel \
             libarchive-devel \
@@ -106,8 +106,7 @@ case "${target}" in
             qt5-base \
             qt5-tools \
             sccache \
-            systemd \
-            unzip
+            systemd
         ;;
     *)
         echo "unsupported target: ${target}" >&2

@@ -278,6 +278,7 @@ jobs:
             -e "s/@VINPUT_VERSION@/${version}/g" \
             -e "s/@SHERPA_ONNX_VERSION@/${SHERPA_ONNX_VERSION}/g" \
             -e "s/@VOSK_VERSION@/${VOSK_VERSION}/g" \
+            -e "s/@VOSK_PKGREL@/${VOSK_PKGREL}/g" \
             packaging/fedora/fcitx5-vinput.spec \
             > "${HOME}/rpmbuild/SPECS/fcitx5-vinput.spec"
 

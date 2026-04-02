@@ -35,6 +35,27 @@
           pkgs = pkgsFor system;
           sherpa-deps = sherpa-onnx.packages."${pkgs.stdenv.hostPlatform.system}";
 
+          vosk = pkgs.stdenv.mkDerivation {
+            pname = "vosk-api";
+            version = "0.3.50";
+            src = pkgs.fetchurl {
+              url = "https://geo.mirror.pkgbuild.com/extra/os/x86_64/vosk-api-0.3.50-7-x86_64.pkg.tar.zst";
+              sha256 = "80aae4295523c3849fd6f290882085976305ec8a3ad55a1a8211c4896b7a08b7";
+            };
+            nativeBuildInputs = [ pkgs.zstd ];
+            unpackPhase = ''
+              mkdir -p src
+              tar -xf $src -C src
+            '';
+            installPhase = ''
+              install -d $out/lib $out/include
+              install -m 755 src/usr/lib/libvosk.so $out/lib/
+              install -m 644 src/usr/include/vosk_api.h $out/include/
+            '';
+            dontFixup = true;
+            meta.platforms = [ "x86_64-linux" ];
+          };
+
           fcitx5-vinput = pkgs.stdenv.mkDerivation {
             pname = "fcitx5-vinput";
             inherit version;
@@ -63,7 +84,7 @@
               sherpa-deps.nlohmann_json
               clang
               mold
-            ];
+            ] ++ pkgs.lib.optionals (system == "x86_64-linux") [ vosk ];
 
             cmakeFlags = [
               "-DVINPUT_FETCH_CLI11=OFF"
@@ -82,7 +103,7 @@
           };
         in
         {
-          inherit fcitx5-vinput;
+          inherit fcitx5-vinput vosk;
           default = fcitx5-vinput;
         }
       );
@@ -110,7 +131,7 @@
               cli11
               sherpa-deps.sherpa-onnx
               sherpa-deps.nlohmann_json
-            ];
+            ] ++ pkgs.lib.optionals (system == "x86_64-linux") [ self.packages.${system}.vosk ];
           };
         }
       );
