@@ -41,6 +41,7 @@ int SafeStoi(const std::string &value, int fallback) {
   }
 }
 
+#ifdef VINPUT_VOSK_HAS_ENDPOINTER
 float SafeStof(const std::string &value, float fallback) {
   try {
     return std::stof(value);
@@ -48,6 +49,7 @@ float SafeStof(const std::string &value, float fallback) {
     return fallback;
   }
 }
+#endif
 
 int ResolveSampleRate(const ModelInfo &model_info) {
   if (model_info.recognizer_config.contains("feat_config") &&
@@ -66,6 +68,7 @@ int ResolveSampleRate(const ModelInfo &model_info) {
   return SafeStoi(model_info.Param("sample_rate", "16000"), 16000);
 }
 
+#ifdef VINPUT_VOSK_HAS_ENDPOINTER
 VoskEndpointerMode ResolveEndpointerMode(const ModelInfo &model_info) {
   const std::string mode =
       model_info.Param("endpointer_mode", model_info.Param("endpoint_mode"));
@@ -80,6 +83,7 @@ VoskEndpointerMode ResolveEndpointerMode(const ModelInfo &model_info) {
   }
   return VOSK_EP_ANSWER_DEFAULT;
 }
+#endif
 
 bool ShouldConcatenateWithoutSpace(std::string_view language) {
   return language == "zh" || language == "zh_cn" || language == "zh-hans" ||
@@ -354,6 +358,8 @@ public:
     vosk_recognizer_set_words(recognizer, 0);
     vosk_recognizer_set_partial_words(recognizer, 0);
     vosk_recognizer_set_max_alternatives(recognizer, 0);
+
+#ifdef VINPUT_VOSK_HAS_ENDPOINTER
     vosk_recognizer_set_endpointer_mode(recognizer,
                                         ResolveEndpointerMode(model_info_));
 
@@ -361,6 +367,7 @@ public:
     const float t_end = SafeStof(model_info_.Param("t_end", "0.6"), 0.6f);
     const float t_max = SafeStof(model_info_.Param("t_max", "30.0"), 30.0f);
     vosk_recognizer_set_endpointer_delays(recognizer, t_start_max, t_end, t_max);
+#endif
 
     if (error) {
       error->clear();

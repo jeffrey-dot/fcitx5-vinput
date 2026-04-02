@@ -47,6 +47,15 @@ if(VOSK_LIB AND VOSK_INCLUDE_DIR)
     target_compile_definitions(vinput-daemon PRIVATE
         VINPUT_HAVE_VOSK=1
     )
+
+    include(CheckSymbolExists)
+    set(CMAKE_REQUIRED_INCLUDES "${VOSK_INCLUDE_DIR}")
+    check_symbol_exists(VOSK_EP_ANSWER_DEFAULT "vosk_api.h" VOSK_HAS_ENDPOINTER)
+    if(VOSK_HAS_ENDPOINTER)
+        target_compile_definitions(vinput-daemon PRIVATE
+            VINPUT_VOSK_HAS_ENDPOINTER=1
+        )
+    endif()
 endif()
 
 target_compile_definitions(vinput-daemon PRIVATE
