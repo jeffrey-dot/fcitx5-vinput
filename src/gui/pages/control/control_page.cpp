@@ -9,7 +9,6 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QMessageBox>
-#include <QPalette>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -37,15 +36,6 @@ bool ReloadAsrBackend(std::string *error = nullptr) {
     return daemon_error.empty();
   }
   return dbus.ReloadAsrBackend(error);
-}
-
-void SetLabelForeground(QWidget *widget, const QColor &color) {
-  if (!widget) {
-    return;
-  }
-  QPalette palette = widget->palette();
-  palette.setColor(QPalette::WindowText, color);
-  widget->setPalette(palette);
 }
 
 }  // namespace
@@ -359,10 +349,8 @@ void ControlPage::onAsrSetActive() {
 void ControlPage::refreshDaemonStatus() {
   vinput::cli::DbusClient dbus;
   std::string err;
-  const QPalette pal = lblDaemonStatus_->palette();
   if (!dbus.IsDaemonRunning(&err)) {
       lblDaemonStatus_->setText(tr("Stopped"));
-      SetLabelForeground(lblDaemonStatus_, pal.color(QPalette::Disabled, QPalette::WindowText));
       btnDaemonStart_->setEnabled(true);
       btnDaemonStop_->setEnabled(false);
       btnDaemonRestart_->setEnabled(false);
@@ -371,10 +359,8 @@ void ControlPage::refreshDaemonStatus() {
   std::string status;
   if (!dbus.GetDaemonStatus(&status, &err)) {
       lblDaemonStatus_->setText(tr("Running (Status Error: %1)").arg(QString::fromStdString(err)));
-      SetLabelForeground(lblDaemonStatus_, pal.color(QPalette::LinkVisited));
   } else {
       lblDaemonStatus_->setText(tr("Running: %1").arg(QString::fromStdString(status)));
-      SetLabelForeground(lblDaemonStatus_, pal.color(QPalette::Link));
   }
   btnDaemonStart_->setEnabled(false);
   btnDaemonStop_->setEnabled(true);

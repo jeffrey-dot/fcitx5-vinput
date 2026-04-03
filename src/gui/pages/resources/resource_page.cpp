@@ -1,14 +1,11 @@
 #include "pages/resources/resource_page.h"
 
 #include <QAbstractItemView>
-#include <QApplication>
-#include <QColor>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QPalette>
 #include <QPointer>
 #include <QThreadPool>
 #include <QTabWidget>
@@ -243,12 +240,6 @@ void ResourcePage::applyTableFilter(QTableWidget *table,
 }
 
 void ResourcePage::populateLocalModels(const std::vector<ModelSummary> &models) {
-  const QPalette pal = QApplication::palette();
-  const QColor colorPositive = pal.color(QPalette::Link);
-  const QColor colorDisabled = pal.color(QPalette::Disabled, QPalette::Text);
-  const QColor colorHighlight = pal.color(QPalette::Highlight);
-  const QColor colorError = pal.color(QPalette::LinkVisited);
-
   tableInstalledModels_->setRowCount(0);
 
   auto i18n_map = I18nCache::Get().GetMap();
@@ -267,9 +258,8 @@ void ResourcePage::populateLocalModels(const std::vector<ModelSummary> &models) 
     sizeCell->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
     tableInstalledModels_->setItem(row, 3, sizeCell);
 
-    auto *hwCell = MakeCell(model.supports_hotwords ? tr("yes") : tr("no"));
-    hwCell->setForeground(model.supports_hotwords ? colorPositive : colorDisabled);
-    tableInstalledModels_->setItem(row, 4, hwCell);
+    tableInstalledModels_->setItem(
+        row, 4, MakeCell(model.supports_hotwords ? tr("yes") : tr("no")));
 
     QString status;
     if (model.state == ModelState::Active) status = tr("active");
@@ -278,12 +268,9 @@ void ResourcePage::populateLocalModels(const std::vector<ModelSummary> &models) 
 
     auto *stCell = MakeCell(status);
     if (model.state == ModelState::Active) {
-      stCell->setForeground(colorHighlight);
       QFont f = stCell->font();
       f.setBold(true);
       stCell->setFont(f);
-    } else if (model.state == ModelState::Broken) {
-      stCell->setForeground(colorError);
     }
     tableInstalledModels_->setItem(row, 5, stCell);
   }
@@ -292,10 +279,6 @@ void ResourcePage::populateLocalModels(const std::vector<ModelSummary> &models) 
 }
 
 void ResourcePage::populateRemoteModels(const std::vector<RemoteModelEntry> &models) {
-  const QPalette pal = QApplication::palette();
-  const QColor colorPositive = pal.color(QPalette::Link);
-  const QColor colorDisabled = pal.color(QPalette::Disabled, QPalette::Text);
-
   tableAvailableModels_->setRowCount(0);
   
   CoreConfig config = ConfigManager::Get().Load();
@@ -320,22 +303,18 @@ void ResourcePage::populateRemoteModels(const std::vector<RemoteModelEntry> &mod
     sizeCell->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
     tableAvailableModels_->setItem(row, 4, sizeCell);
 
-    auto *hwCell = MakeCell(model.supports_hotwords() ? tr("yes") : tr("no"));
-    hwCell->setForeground(model.supports_hotwords() ? colorPositive : colorDisabled);
-    tableAvailableModels_->setItem(row, 5, hwCell);
+    tableAvailableModels_->setItem(
+        row, 5, MakeCell(model.supports_hotwords() ? tr("yes") : tr("no")));
 
     bool installed = std::any_of(localModels.begin(), localModels.end(), [&](const ModelSummary& m){ return m.id == model.id; });
     QString status = installed ? tr("installed") : tr("available");
 
     auto *stCell = MakeCell(status);
     if (installed) {
-      stCell->setForeground(colorDisabled);
       for (int c = 0; c < tableAvailableModels_->columnCount(); ++c) {
         if (auto *ci = tableAvailableModels_->item(row, c))
           ci->setFlags(ci->flags() & ~Qt::ItemIsEnabled);
       }
-    } else {
-      stCell->setForeground(colorPositive);
     }
     tableAvailableModels_->setItem(row, 6, stCell);
   }
@@ -344,10 +323,6 @@ void ResourcePage::populateRemoteModels(const std::vector<RemoteModelEntry> &mod
 }
 
 void ResourcePage::populateRemoteProviders(const std::vector<vinput::script::RegistryEntry> &providers) {
-  const QPalette pal = QApplication::palette();
-  const QColor colorPositive = pal.color(QPalette::Link);
-  const QColor colorDisabled = pal.color(QPalette::Disabled, QPalette::Text);
-
   tableAvailableProviders_->setRowCount(0);
   CoreConfig config = ConfigManager::Get().Load();
   auto i18n_map = I18nCache::Get().GetMap();
@@ -370,13 +345,10 @@ void ResourcePage::populateRemoteProviders(const std::vector<vinput::script::Reg
 
     auto *stCell = MakeCell(status);
     if (installed) {
-      stCell->setForeground(colorDisabled);
       for (int c = 0; c < tableAvailableProviders_->columnCount(); ++c) {
         if (auto *cell = tableAvailableProviders_->item(row, c))
           cell->setFlags(cell->flags() & ~Qt::ItemIsEnabled);
       }
-    } else {
-      stCell->setForeground(colorPositive);
     }
     tableAvailableProviders_->setItem(row, 3, stCell);
   }
@@ -385,10 +357,6 @@ void ResourcePage::populateRemoteProviders(const std::vector<vinput::script::Reg
 }
 
 void ResourcePage::populateRemoteAdapters(const std::vector<vinput::script::RegistryEntry> &adapters) {
-  const QPalette pal = QApplication::palette();
-  const QColor colorPositive = pal.color(QPalette::Link);
-  const QColor colorDisabled = pal.color(QPalette::Disabled, QPalette::Text);
-
   tableAvailableAdapters_->setRowCount(0);
   CoreConfig config = ConfigManager::Get().Load();
   auto i18n_map = I18nCache::Get().GetMap();
@@ -410,13 +378,10 @@ void ResourcePage::populateRemoteAdapters(const std::vector<vinput::script::Regi
 
     auto *stCell = MakeCell(status);
     if (installed) {
-      stCell->setForeground(colorDisabled);
       for (int c = 0; c < tableAvailableAdapters_->columnCount(); ++c) {
         if (auto *cell = tableAvailableAdapters_->item(row, c))
           cell->setFlags(cell->flags() & ~Qt::ItemIsEnabled);
       }
-    } else {
-      stCell->setForeground(colorPositive);
     }
     tableAvailableAdapters_->setItem(row, 2, stCell);
   }
