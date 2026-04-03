@@ -24,10 +24,11 @@ BuildRequires:  gettext
 BuildRequires:  cmake(Fcitx5Core)
 BuildRequires:  cmake(Fcitx5Config)
 BuildRequires:  cmake(nlohmann_json) >= 3.2.0
-BuildRequires:  cmake(Qt5Core)
-BuildRequires:  cmake(Qt5Gui)
-BuildRequires:  cmake(Qt5Widgets)
-BuildRequires:  cmake(Qt5LinguistTools)
+BuildRequires:  cmake(Qt6Core)
+BuildRequires:  cmake(Qt6Gui)
+BuildRequires:  cmake(Qt6Widgets)
+BuildRequires:  cmake(Qt6Network)
+BuildRequires:  cmake(Qt6LinguistTools)
 BuildRequires:  pkgconfig(libcurl)
 BuildRequires:  pkgconfig(openssl)
 BuildRequires:  pkgconfig(libarchive)
@@ -39,6 +40,7 @@ Requires:       fcitx5
 Requires:       pipewire
 Requires:       curl
 Requires:       systemd
+Requires:       qt6-qtbase
 
 # Bundled sherpa-onnx/onnxruntime shared libraries are private runtime
 # dependencies installed under %{_libdir}/fcitx5-vinput/. They should not

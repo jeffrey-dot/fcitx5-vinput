@@ -19,8 +19,9 @@ Build-Depends: debhelper-compat (= 13),
                libfcitx5utils-dev,
                fcitx5-modules-dev,
                nlohmann-json3-dev,
-               qtbase5-dev,
-               qttools5-dev
+               qt6-base-dev,
+               qt6-tools-dev,
+               qt6-tools-dev-tools
 Standards-Version: 4.6.2
 Homepage: https://github.com/xifan2333/fcitx5-vinput
 
