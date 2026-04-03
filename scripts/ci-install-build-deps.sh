@@ -20,7 +20,7 @@ install_qt_apt() {
 }
 
 install_qt_dnf() {
-    "${sudo_cmd[@]}" dnf install -y \
+    "${sudo_cmd[@]}" dnf install -y --setopt=install_weak_deps=False \
         qt6-qtbase-devel \
         qt6-qttools-devel
 }
@@ -84,7 +84,9 @@ case "${target}" in
         install_qt_apt
         ;;
     fedora43)
-        "${sudo_cmd[@]}" dnf install -y \
+        # Avoid weak deps that can pull packages from the Cisco openh264 repo,
+        # which is intermittently unavailable in GitHub Actions containers.
+        "${sudo_cmd[@]}" dnf install -y --setopt=install_weak_deps=False \
             clang \
             cmake \
             mold \
