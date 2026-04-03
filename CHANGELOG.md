@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.16](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.16) — 2026-04-04
+
+### Bug Fixes
+
+- **ci:** Avoid Fedora weak dependencies that pull the flaky Cisco openh264 mirror during release packaging
+
 ## [2.0.15](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.15) — 2026-04-04
 
 ### Miscellaneous
