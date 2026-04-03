@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.14](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.14) — 2026-04-03
+
+### Bug Fixes
+
+- **daemon:** Defer ASR backend reload until the daemon is idle
+- **ci:** Prefer Qt6 in CI and packaging
+- **build:** Require Qt6 for GUI builds
+
 ## [2.0.8](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.8) — 2026-03-31
 
 ### Bug Fixes
