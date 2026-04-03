@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.15](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.15) — 2026-04-04
+
+### Miscellaneous
+
+- **release:** Bump version for channel publishing
+
 ## [2.0.14](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.14) — 2026-04-03
 
 ### Bug Fixes
