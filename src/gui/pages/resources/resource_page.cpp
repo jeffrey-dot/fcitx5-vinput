@@ -56,6 +56,23 @@ bool ReloadAsrBackend(std::string *error = nullptr) {
   return dbus.ReloadAsrBackend(error);
 }
 
+template <typename Callback>
+void RunReloadAsrBackendAsync(ResourcePage *page, Callback callback) {
+  QPointer<ResourcePage> self(page);
+  QThreadPool::globalInstance()->start(
+      [self, callback = std::move(callback)]() mutable {
+        std::string err;
+        const bool ok = ReloadAsrBackend(&err);
+        QMetaObject::invokeMethod(
+            self, [self, callback = std::move(callback), ok, err]() mutable {
+              if (!self) {
+                return;
+              }
+              callback(ok, err);
+            });
+      });
+}
+
 }  // namespace
 
 ResourcePage::ResourcePage(QWidget *parent) : QWidget(parent) {
@@ -486,17 +503,22 @@ void ResourcePage::onUseModelClicked() {
       QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
       return;
   }
-  if (!ReloadAsrBackend(&err)) {
-      QMessageBox::warning(this, tr("Warning"),
-                           tr("Config saved, but failed to reload ASR backend: %1")
-                               .arg(QString::fromStdString(err)));
-  }
-
-  QMessageBox::information(
-      this, tr("Local Model Updated"),
-      tr("Selected model '%1' has been assigned to the preferred local ASR provider.").arg(model_name));
   refreshAll();
   emit configChanged();
+  RunReloadAsrBackendAsync(
+      this, [this, model_name](bool ok, const std::string &err) {
+        if (!ok) {
+          QMessageBox::warning(
+              this, tr("Warning"),
+              tr("Config saved, but failed to reload ASR backend: %1")
+                  .arg(QString::fromStdString(err)));
+        }
+        QMessageBox::information(
+            this, tr("Local Model Updated"),
+            tr("Selected model '%1' has been assigned to the preferred local "
+               "ASR provider.")
+                .arg(model_name));
+      });
 }
 
 void ResourcePage::onRemoveModelClicked() {
@@ -509,6 +531,8 @@ void ResourcePage::onRemoveModelClicked() {
       tr("Are you sure you want to remove model '%1'?").arg(model_name));
   if (response == QMessageBox::Yes) {
     CoreConfig config = ConfigManager::Get().Load();
+    const bool reload_backend =
+        ResolvePreferredLocalModel(config) == model_name.toStdString();
     ModelManager manager(ResolveModelBaseDir(config).string());
     std::string err;
     if (!manager.Remove(model_name.toStdString(), &err)) {
@@ -517,21 +541,26 @@ void ResourcePage::onRemoveModelClicked() {
     }
     
     // Check if was preferred
-    if (ResolvePreferredLocalModel(config) == model_name.toStdString()) {
+    if (reload_backend) {
         SetPreferredLocalModel(&config, "", &err);
         if (!ConfigManager::Get().Save(config)) {
             QMessageBox::warning(this, tr("Error"), tr("Failed to save config."));
             return;
         }
-        if (!ReloadAsrBackend(&err)) {
-            QMessageBox::warning(this, tr("Error"),
-                                 tr("Config saved, but failed to reload ASR backend: %1")
-                                     .arg(QString::fromStdString(err)));
-        }
     }
     textLog_->append(tr("Removed %1.").arg(model_name));
     refreshAll();
     emit configChanged();
+    if (reload_backend) {
+      RunReloadAsrBackendAsync(this, [this](bool ok, const std::string &err) {
+        if (!ok) {
+          QMessageBox::warning(
+              this, tr("Error"),
+              tr("Config saved, but failed to reload ASR backend: %1")
+                  .arg(QString::fromStdString(err)));
+        }
+      });
+    }
   }
 }
 

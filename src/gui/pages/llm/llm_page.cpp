@@ -16,9 +16,11 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QPointer>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTextEdit>
+#include <QThreadPool>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -70,6 +72,27 @@ AdapterData AdapterDataFromConfig(const LlmAdapter &a) {
 
 LlmAdapter LlmAdapterFromDialog(const AdapterData &d) {
   return {d.id, d.command, d.args, d.env};
+}
+
+template <typename Callback>
+void RunAdapterControlAsync(LlmPage *page, std::string adapter_id,
+                            bool start, Callback callback) {
+  QPointer<LlmPage> self(page);
+  QThreadPool::globalInstance()->start(
+      [self, adapter_id = std::move(adapter_id), start,
+       callback = std::move(callback)]() mutable {
+        vinput::cli::DbusClient dbus;
+        std::string err;
+        const bool ok = start ? dbus.StartAdapter(adapter_id, &err)
+                              : dbus.StopAdapter(adapter_id, &err);
+        QMetaObject::invokeMethod(
+            self, [self, callback = std::move(callback), ok, err]() mutable {
+              if (!self) {
+                return;
+              }
+              callback(ok, err);
+            });
+      });
 }
 
 }  // namespace
@@ -499,17 +522,23 @@ void LlmPage::onAdapterStart() {
     return;
 
   const QString adapter_id = item->data(Qt::UserRole).toString();
-
-  vinput::cli::DbusClient dbus;
-  std::string err;
-  if (!dbus.StartAdapter(adapter_id.toStdString(), &err)) {
-    QMessageBox::warning(this, tr("Error"), QString::fromStdString(err));
-    return;
-  }
-
-  QMessageBox::information(this, tr("LLM Adapter Started"),
-                           tr("Adapter '%1' started.").arg(adapter_id));
-  refreshAdapterList();
+  btnAdapterStart_->setEnabled(false);
+  btnAdapterStop_->setEnabled(false);
+  RunAdapterControlAsync(this, adapter_id.toStdString(), true,
+                         [this, adapter_id](bool ok, const std::string &err) {
+                           btnAdapterStart_->setEnabled(true);
+                           btnAdapterStop_->setEnabled(true);
+                           if (!ok) {
+                             QMessageBox::warning(
+                                 this, tr("Error"),
+                                 QString::fromStdString(err));
+                             return;
+                           }
+                           QMessageBox::information(
+                               this, tr("LLM Adapter Started"),
+                               tr("Adapter '%1' started.").arg(adapter_id));
+                           refreshAdapterList();
+                         });
 }
 
 void LlmPage::onAdapterStop() {
@@ -518,14 +547,20 @@ void LlmPage::onAdapterStop() {
     return;
 
   const QString adapter_id = item->data(Qt::UserRole).toString();
-
-  vinput::cli::DbusClient dbus;
-  std::string err;
-  if (!dbus.StopAdapter(adapter_id.toStdString(), &err)) {
-    QMessageBox::warning(this, tr("Error"), QString::fromStdString(err));
-    return;
-  }
-  refreshAdapterList();
+  btnAdapterStart_->setEnabled(false);
+  btnAdapterStop_->setEnabled(false);
+  RunAdapterControlAsync(this, adapter_id.toStdString(), false,
+                         [this](bool ok, const std::string &err) {
+                           btnAdapterStart_->setEnabled(true);
+                           btnAdapterStop_->setEnabled(true);
+                           if (!ok) {
+                             QMessageBox::warning(
+                                 this, tr("Error"),
+                                 QString::fromStdString(err));
+                             return;
+                           }
+                           refreshAdapterList();
+                         });
 }
 
 void LlmPage::refreshSceneList() {

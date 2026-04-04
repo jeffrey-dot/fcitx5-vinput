@@ -9,6 +9,8 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPointer>
+#include <QThreadPool>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -36,6 +38,21 @@ bool ReloadAsrBackend(std::string *error = nullptr) {
     return daemon_error.empty();
   }
   return dbus.ReloadAsrBackend(error);
+}
+
+template <typename Callback>
+void RunReloadAsrBackendAsync(ControlPage *page, Callback callback) {
+  QPointer<ControlPage> self(page);
+  QThreadPool::globalInstance()->start([self, callback = std::move(callback)]() mutable {
+    std::string err;
+    const bool ok = ReloadAsrBackend(&err);
+    QMetaObject::invokeMethod(self, [self, callback = std::move(callback), ok, err]() mutable {
+      if (!self) {
+        return;
+      }
+      callback(ok, err);
+    });
+  });
 }
 
 }  // namespace
@@ -269,19 +286,19 @@ void ControlPage::onAsrEdit() {
      config.asr.providers.push_back(p);
   }
   
-  std::string err;
   if (!ConfigManager::Get().Save(config)) {
      QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
      return;
   }
-  if (!ReloadAsrBackend(&err)) {
-     QMessageBox::warning(this, tr("Warning"),
-                          tr("Config saved, but failed to reload ASR backend: %1")
-                              .arg(QString::fromStdString(err)));
-  }
-  
   refreshAsrList();
   emit configChanged();
+  RunReloadAsrBackendAsync(this, [this](bool ok, const std::string &err) {
+    if (!ok) {
+      QMessageBox::warning(this, tr("Warning"),
+                           tr("Config saved, but failed to reload ASR backend: %1")
+                               .arg(QString::fromStdString(err)));
+    }
+  });
 }
 
 void ControlPage::onAsrRemove() {
@@ -311,15 +328,16 @@ void ControlPage::onAsrRemove() {
           QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
           return;
       }
-      std::string err;
-      if (!ReloadAsrBackend(&err)) {
+      refreshAsrList();
+      emit configChanged();
+      RunReloadAsrBackendAsync(this, [this](bool ok, const std::string &err) {
+        if (!ok) {
           QMessageBox::warning(
               this, tr("Warning"),
               tr("Config saved, but failed to reload ASR backend: %1")
                   .arg(QString::fromStdString(err)));
-      }
-      refreshAsrList();
-      emit configChanged();
+        }
+      });
   }
 }
 
@@ -335,15 +353,15 @@ void ControlPage::onAsrSetActive() {
       QMessageBox::critical(this, tr("Error"), tr("Failed to save config."));
       return;
   }
-  std::string err;
-  if (!ReloadAsrBackend(&err)) {
+  refreshAsrList();
+  emit configChanged();
+  RunReloadAsrBackendAsync(this, [this](bool ok, const std::string &err) {
+    if (!ok) {
       QMessageBox::warning(this, tr("Warning"),
                            tr("Config saved, but failed to reload ASR backend: %1")
                                .arg(QString::fromStdString(err)));
-  }
-  
-  refreshAsrList();
-  emit configChanged();
+    }
+  });
 }
 
 void ControlPage::refreshDaemonStatus() {
@@ -384,30 +402,60 @@ void ControlPage::refreshDaemonStatus() {
 
 void ControlPage::onDaemonStart() {
   btnDaemonStart_->setEnabled(false);
-  const auto result = vinput::cli::SystemctlStartWithDiagnostics();
-  if (!result.ok()) {
-      vinput::cli::NotifyDaemonNotification(result.notification);
-      QMessageBox::critical(this, tr("Error"),
-                            QString::fromStdString(result.failure_message));
-  }
-  refreshDaemonStatus();
+  btnDaemonStop_->setEnabled(false);
+  btnDaemonRestart_->setEnabled(false);
+  QPointer<ControlPage> self(this);
+  QThreadPool::globalInstance()->start([self]() {
+    const auto result = vinput::cli::SystemctlStartWithDiagnostics();
+    QMetaObject::invokeMethod(self, [self, result]() {
+      if (!self) {
+        return;
+      }
+      if (!result.ok()) {
+        vinput::cli::NotifyDaemonNotification(result.notification);
+        QMessageBox::critical(self, self->tr("Error"),
+                              QString::fromStdString(result.failure_message));
+      }
+      self->refreshDaemonStatus();
+    });
+  });
 }
 
 void ControlPage::onDaemonStop() {
   btnDaemonStop_->setEnabled(false);
-  vinput::cli::SystemctlStop();
+  btnDaemonStart_->setEnabled(false);
+  btnDaemonRestart_->setEnabled(false);
+  QPointer<ControlPage> self(this);
+  QThreadPool::globalInstance()->start([self]() {
+    vinput::cli::SystemctlStop();
+    QMetaObject::invokeMethod(self, [self]() {
+      if (!self) {
+        return;
+      }
+      self->refreshDaemonStatus();
+    });
+  });
 }
 
 void ControlPage::onDaemonRestart() {
   btnDaemonRestart_->setEnabled(false);
   btnDaemonStop_->setEnabled(false);
-  const auto result = vinput::cli::SystemctlRestartWithDiagnostics();
-  if (!result.ok()) {
-      vinput::cli::NotifyDaemonNotification(result.notification);
-      QMessageBox::critical(this, tr("Error"),
-                            QString::fromStdString(result.failure_message));
-  }
-  refreshDaemonStatus();
+  btnDaemonStart_->setEnabled(false);
+  QPointer<ControlPage> self(this);
+  QThreadPool::globalInstance()->start([self]() {
+    const auto result = vinput::cli::SystemctlRestartWithDiagnostics();
+    QMetaObject::invokeMethod(self, [self, result]() {
+      if (!self) {
+        return;
+      }
+      if (!result.ok()) {
+        vinput::cli::NotifyDaemonNotification(result.notification);
+        QMessageBox::critical(self, self->tr("Error"),
+                              QString::fromStdString(result.failure_message));
+      }
+      self->refreshDaemonStatus();
+    });
+  });
 }
 
 void ControlPage::checkSandboxPermissions() {
