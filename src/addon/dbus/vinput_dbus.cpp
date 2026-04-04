@@ -286,7 +286,7 @@ void VinputEngine::setupDBusWatcher() {
 }
 
 bool VinputEngine::callStartRecording() {
-  if (!bus_) {
+  if (!bus_ || !daemonSyncAllowed()) {
     noteDaemonSyncFailure();
     return false;
   }
@@ -303,7 +303,7 @@ bool VinputEngine::callStartRecording() {
 }
 
 bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
-  if (!bus_) {
+  if (!bus_ || !daemonSyncAllowed()) {
     noteDaemonSyncFailure();
     return false;
   }
@@ -321,7 +321,7 @@ bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
 }
 
 bool VinputEngine::callStopRecording(const std::string &scene_id) {
-  if (!bus_) {
+  if (!bus_ || !daemonSyncAllowed()) {
     noteDaemonSyncFailure();
     return false;
   }
@@ -501,9 +501,10 @@ bool VinputEngine::queryAsrBackendState(vinput::dbus::AsrBackendState *state,
 }
 
 bool VinputEngine::callReloadAsrBackend(std::string *error) {
-  if (!bus_) {
+  if (!bus_ || !daemonSyncAllowed()) {
     if (error) {
-      *error = "D-Bus is unavailable.";
+      *error = bus_ ? _("Daemon access is temporarily throttled.")
+                    : "D-Bus is unavailable.";
     }
     noteDaemonSyncFailure();
     return false;
