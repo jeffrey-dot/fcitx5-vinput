@@ -1,5 +1,7 @@
 #!/usr/bin/make -f
 
+SHERPA_ONNX_PREFIX := $(CURDIR)/third_party/sherpa-onnx
+
 %:
 	dh $@
 
@@ -7,6 +9,7 @@ override_dh_auto_configure:
 	export CC=clang && \
 	export CXX=clang++ && \
 	dh_auto_configure -- -G Ninja \
+		-DCMAKE_PREFIX_PATH=$(SHERPA_ONNX_PREFIX) \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold \

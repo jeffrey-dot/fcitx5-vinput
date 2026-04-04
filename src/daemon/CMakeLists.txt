@@ -122,6 +122,12 @@ if(VINPUT_RUNTIME_MODE STREQUAL "bundled")
         "${ONNXRUNTIME_LIB}"
         DESTINATION "${VINPUT_RUNTIME_LIBDIR}"
     )
+    if(VOSK_LIB)
+        install(FILES
+            "${VOSK_LIB}"
+            DESTINATION "${VINPUT_RUNTIME_LIBDIR}"
+        )
+    endif()
 endif()
 # VAD model (optional — daemon gracefully degrades if missing)
 if(EXISTS "${CMAKE_SOURCE_DIR}/data/vad/silero_vad.onnx")

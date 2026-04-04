@@ -155,8 +155,19 @@ jobs:
           pkg="fcitx5-vinput_${version}-1ppa1~noble1"
 
           tar -xf "dist/${{ needs.source_archive.outputs.source_archive }}"
-          cp "dist/${{ needs.source_archive.outputs.source_archive }}" \
-            "fcitx5-vinput_${version}.orig.tar.gz"
+
+          cd "fcitx5-vinput-${version}"
+          source ./scripts/sherpa-onnx-vars.sh
+          bash ./scripts/build-sherpa-onnx.sh \
+            "${SHERPA_ONNX_VERSION}" \
+            "${PWD}/third_party/sherpa-onnx"
+          bash ./scripts/build-vosk.sh \
+            "" \
+            "${PWD}/third_party/sherpa-onnx"
+
+          cd ..
+          tar -czf "fcitx5-vinput_${version}.orig.tar.gz" \
+            "fcitx5-vinput-${version}"
 
           cd "fcitx5-vinput-${version}"
           cp -r packaging/debian debian
