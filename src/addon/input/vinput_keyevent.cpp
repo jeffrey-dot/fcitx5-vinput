@@ -23,6 +23,9 @@ std::string NoSelectionPreeditText() { return _("Please select text first."); }
 
 std::string CommandDisabledPreeditText() { return _("Command mode is disabled (candidate count is 0)."); }
 std::string CommandNoProviderPreeditText() { return _("No LLM provider configured for command mode."); }
+std::string DaemonUnavailablePreeditText() {
+  return _("Voice input daemon is temporarily unavailable.");
+}
 
 } // namespace
 
@@ -171,12 +174,18 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       FCITX_LOG(Info) << "vinput: command key pressed, selected_text length=" << selected_text.size();
       if (!callStartCommandRecording(selected_text)) {
         finishFrontendSession(ic);
+        if (!daemonSyncAllowed()) {
+          updatePreedit(ic, DaemonUnavailablePreeditText());
+        }
       }
     } else {
       enterRecordingState(ic, trigger, false);
       FCITX_LOG(Info) << "vinput: trigger key pressed";
       if (!callStartRecording()) {
         finishFrontendSession(ic);
+        if (!daemonSyncAllowed()) {
+          updatePreedit(ic, DaemonUnavailablePreeditText());
+        }
       }
     }
     keyEvent.filterAndAccept();
