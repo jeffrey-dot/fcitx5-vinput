@@ -4,8 +4,12 @@
 #include "daemon/asr/runtime/recognition_contract.h"
 
 #include <cstdint>
+#include <condition_variable>
+#include <functional>
+#include <mutex>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace vinput::daemon::asr {
@@ -19,6 +23,14 @@ struct RecognitionRunResult {
 
 class RecognitionSessionManager {
 public:
+  struct ReloadSnapshot {
+    std::string target_signature;
+    std::string effective_signature;
+    std::string last_error;
+    bool reload_in_progress = false;
+    bool has_effective_backend = false;
+  };
+
   explicit RecognitionSessionManager(bool disable_asr_by_flag);
   ~RecognitionSessionManager();
 
@@ -32,15 +44,52 @@ public:
                 std::string *error);
   RecognitionRunResult Recognize(const CoreConfig &settings,
                                  const std::vector<int16_t> &pcm_data);
+  ReloadSnapshot GetReloadSnapshot() const;
+  void SetReloadResultCallback(
+      std::function<void(bool success, const std::string &message)> callback);
   void Shutdown();
 
 private:
-  bool EnsureBackendReady(const CoreConfig &settings, std::string *error);
-  void ResetBackend();
+  struct PreparedBackend {
+    std::unique_ptr<AsrBackend> backend;
+    BackendDescriptor descriptor;
+    std::string signature;
+  };
+
+  bool CreatePreparedBackend(const CoreConfig &settings,
+                             PreparedBackend *prepared,
+                             std::string *error);
+  bool ActivatePreparedBackend(PreparedBackend prepared,
+                               std::string *error);
+  bool CreatePreparedBackendForReload(const CoreConfig &settings,
+                                      const std::string &signature,
+                                      PreparedBackend *prepared,
+                                      std::string *error);
+  bool CreateSessionFromEffectiveBackend(BackendDescriptor *descriptor,
+                                         std::unique_ptr<RecognitionSession> *session,
+                                         std::string *error);
+  void EnsureReloadWorkerStarted();
+  void ReloadWorkerMain();
+  void ResetEffectiveBackendLocked();
+  void ApplyDisabledStateLocked();
+  void NotifyReloadResult(bool success, const std::string &message);
 
   bool disable_asr_by_flag_ = false;
-  std::unique_ptr<AsrBackend> backend_;
-  std::string backend_signature_;
+  mutable std::mutex state_mutex_;
+  std::condition_variable reload_cv_;
+  bool reload_worker_running_ = false;
+  bool reload_requested_ = false;
+  bool reload_in_progress_ = false;
+  CoreConfig pending_settings_;
+  std::string target_backend_signature_;
+  std::unique_ptr<AsrBackend> effective_backend_;
+  BackendDescriptor effective_descriptor_;
+  bool has_effective_descriptor_ = false;
+  std::string effective_backend_signature_;
+  std::string last_reload_error_;
+  std::thread reload_worker_;
+  std::function<void(bool success, const std::string &message)>
+      reload_result_callback_;
 };
 
 }  // namespace vinput::daemon::asr

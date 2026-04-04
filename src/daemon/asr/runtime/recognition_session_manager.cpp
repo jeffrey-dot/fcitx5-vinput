@@ -4,6 +4,7 @@
 #include "common/utils/debug_log.h"
 #include "daemon/asr/runtime/backend_factory.h"
 
+#include <cstdio>
 #include <utility>
 
 namespace vinput::daemon::asr {
@@ -49,15 +50,8 @@ void LogActiveBackend(const CoreConfig &config) {
                      config.global.defaultLanguage.c_str());
 }
 
-void LogRecognitionRequest(const CoreConfig &config, std::size_t sample_count) {
-  BackendDescriptor descriptor;
-  std::string error;
-  if (!DescribeActiveBackend(config, &descriptor, &error)) {
-    vinput::debug::Log("ASR request provider=(missing) samples=%zu\n",
-                       sample_count);
-    return;
-  }
-
+void LogRecognitionRequest(const BackendDescriptor &descriptor,
+                           std::size_t sample_count) {
   vinput::debug::Log("ASR request provider=%s type=%s backend=%s samples=%zu\n",
                      descriptor.provider_id.c_str(),
                      descriptor.provider_type.c_str(),
@@ -73,29 +67,43 @@ RecognitionSessionManager::~RecognitionSessionManager() { Shutdown(); }
 
 bool RecognitionSessionManager::Initialize(const CoreConfig &settings,
                                            std::string *disabled_reason) {
-  if (!EnsureBackendReady(settings, disabled_reason)) {
-    return false;
-  }
-
-  if (!backend_) {
-    return true;
-  }
-
-  const auto descriptor = backend_->Describe();
-  if (!descriptor.capabilities.supports_streaming) {
-    return true;
-  }
-
-  std::string warmup_error;
-  auto warmup_session = backend_->CreateSession(&warmup_error);
-  if (!warmup_session) {
+  std::string disabled_state_reason;
+  if (ShouldDisableAsr(settings, disable_asr_by_flag_,
+                       &disabled_state_reason)) {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    ApplyDisabledStateLocked();
     if (disabled_reason) {
-      *disabled_reason = std::move(warmup_error);
+      *disabled_reason = std::move(disabled_state_reason);
     }
     return false;
   }
 
-  warmup_session->Cancel();
+  PreparedBackend prepared;
+  std::string error;
+  if (!CreatePreparedBackend(settings, &prepared, &error)) {
+    {
+      std::lock_guard<std::mutex> lock(state_mutex_);
+      ResetEffectiveBackendLocked();
+      target_backend_signature_.clear();
+      last_reload_error_ = error;
+    }
+    if (disabled_reason) {
+      *disabled_reason = error;
+    }
+    return false;
+  }
+
+  if (!ActivatePreparedBackend(std::move(prepared), &error)) {
+    if (disabled_reason) {
+      *disabled_reason = error;
+    }
+    return false;
+  }
+
+  EnsureReloadWorkerStarted();
+  if (disabled_reason) {
+    disabled_reason->clear();
+  }
   return true;
 }
 
@@ -103,29 +111,49 @@ bool RecognitionSessionManager::SynchronizeBackend(const CoreConfig &settings,
                                                    std::string *error) {
   std::string disabled_reason;
   if (ShouldDisableAsr(settings, disable_asr_by_flag_, &disabled_reason)) {
-    ResetBackend();
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    ApplyDisabledStateLocked();
     if (error) {
       error->clear();
     }
     return true;
   }
 
-  return Initialize(settings, error);
+  EnsureReloadWorkerStarted();
+
+  const std::string signature = BuildRuntimeSignature(settings);
+  {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    if (effective_backend_ && effective_backend_signature_ == signature &&
+        !reload_in_progress_) {
+      target_backend_signature_ = signature;
+      last_reload_error_.clear();
+      if (error) {
+        error->clear();
+      }
+      return true;
+    }
+
+    pending_settings_ = settings;
+    target_backend_signature_ = signature;
+    reload_requested_ = true;
+    last_reload_error_.clear();
+  }
+
+  reload_cv_.notify_one();
+  if (error) {
+    error->clear();
+  }
+  return true;
 }
 
 std::unique_ptr<RecognitionSession> RecognitionSessionManager::CreateSession(
     const CoreConfig &settings, BackendDescriptor *descriptor,
     std::string *error) {
-  if (!EnsureBackendReady(settings, error)) {
-    return nullptr;
-  }
+  (void)settings;
 
-  if (descriptor) {
-    *descriptor = backend_->Describe();
-  }
-
-  auto session = backend_->CreateSession(error);
-  if (!session) {
+  std::unique_ptr<RecognitionSession> session;
+  if (!CreateSessionFromEffectiveBackend(descriptor, &session, error)) {
     return nullptr;
   }
 
@@ -195,7 +223,7 @@ RecognitionRunResult RecognitionSessionManager::Recognize(
   }
 
   result.available = true;
-  LogRecognitionRequest(settings, pcm_data.size());
+  LogRecognitionRequest(descriptor, pcm_data.size());
 
   if (!session->PushAudio(pcm_data, &error)) {
     result.ok = false;
@@ -206,56 +234,235 @@ RecognitionRunResult RecognitionSessionManager::Recognize(
   return ConsumeEvents(&session, false, &error);
 }
 
-void RecognitionSessionManager::Shutdown() { ResetBackend(); }
+RecognitionSessionManager::ReloadSnapshot
+RecognitionSessionManager::GetReloadSnapshot() const {
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  return ReloadSnapshot{
+      .target_signature = target_backend_signature_,
+      .effective_signature = effective_backend_signature_,
+      .last_error = last_reload_error_,
+      .reload_in_progress = reload_in_progress_,
+      .has_effective_backend = effective_backend_ != nullptr,
+  };
+}
 
-bool RecognitionSessionManager::EnsureBackendReady(const CoreConfig &settings,
-                                                   std::string *error) {
-  std::string disabled_reason;
-  if (ShouldDisableAsr(settings, disable_asr_by_flag_, &disabled_reason)) {
-    ResetBackend();
-    if (error) {
-      *error = std::move(disabled_reason);
-    }
-    return false;
+void RecognitionSessionManager::SetReloadResultCallback(
+    std::function<void(bool success, const std::string &message)> callback) {
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  reload_result_callback_ = std::move(callback);
+}
+
+void RecognitionSessionManager::Shutdown() {
+  {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    reload_worker_running_ = false;
+    reload_requested_ = false;
+  }
+  reload_cv_.notify_all();
+  if (reload_worker_.joinable()) {
+    reload_worker_.join();
   }
 
-  const std::string signature = BuildRuntimeSignature(settings);
-  if (backend_ && backend_signature_ == signature) {
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  ResetEffectiveBackendLocked();
+  target_backend_signature_.clear();
+  last_reload_error_.clear();
+}
+
+bool RecognitionSessionManager::CreatePreparedBackend(
+    const CoreConfig &settings, PreparedBackend *prepared, std::string *error) {
+  if (!prepared) {
     if (error) {
-      error->clear();
+      *error = "Prepared backend output is not available.";
     }
-    return true;
+    return false;
   }
 
   LogActiveBackend(settings);
-  std::string init_error;
-  auto candidate_backend = CreateBackend(settings, &init_error);
-  if (!candidate_backend) {
-    if (backend_) {
-      vinput::debug::Log(
-          "ASR backend reload rejected; keeping previous backend: %s\n",
-          init_error.c_str());
-      if (error) {
-        error->clear();
-      }
-      return true;
-    }
+  std::string create_error;
+  auto backend = CreateBackend(settings, &create_error);
+  if (!backend) {
     if (error) {
-      *error = std::move(init_error);
+      *error = std::move(create_error);
     }
     return false;
   }
-  backend_ = std::move(candidate_backend);
-  backend_signature_ = signature;
+
+  const BackendDescriptor descriptor = backend->Describe();
+
+  // Force backend initialization during preparation so recording does not
+  // become the hidden fallback path for expensive model load.
+  std::string warmup_error;
+  auto warmup_session = backend->CreateSession(&warmup_error);
+  if (!warmup_session) {
+    if (error) {
+      *error = std::move(warmup_error);
+    }
+    return false;
+  }
+  warmup_session->Cancel();
+
+  prepared->backend = std::move(backend);
+  prepared->descriptor = descriptor;
+  prepared->signature = BuildRuntimeSignature(settings);
   if (error) {
     error->clear();
   }
   return true;
 }
 
-void RecognitionSessionManager::ResetBackend() {
-  backend_.reset();
-  backend_signature_.clear();
+bool RecognitionSessionManager::ActivatePreparedBackend(
+    PreparedBackend prepared, std::string *error) {
+  if (!prepared.backend) {
+    if (error) {
+      *error = "Prepared backend is empty.";
+    }
+    return false;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    effective_backend_ = std::move(prepared.backend);
+    effective_descriptor_ = std::move(prepared.descriptor);
+    has_effective_descriptor_ = true;
+    effective_backend_signature_ = std::move(prepared.signature);
+    target_backend_signature_ = effective_backend_signature_;
+    last_reload_error_.clear();
+  }
+
+  if (error) {
+    error->clear();
+  }
+  return true;
+}
+
+bool RecognitionSessionManager::CreatePreparedBackendForReload(
+    const CoreConfig &settings, const std::string &signature,
+    PreparedBackend *prepared, std::string *error) {
+  if (!CreatePreparedBackend(settings, prepared, error)) {
+    return false;
+  }
+  prepared->signature = signature;
+  return true;
+}
+
+bool RecognitionSessionManager::CreateSessionFromEffectiveBackend(
+    BackendDescriptor *descriptor, std::unique_ptr<RecognitionSession> *session,
+    std::string *error) {
+  if (!session) {
+    if (error) {
+      *error = "Recognition session output is not available.";
+    }
+    return false;
+  }
+
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  if (!effective_backend_) {
+    if (error) {
+      if (!last_reload_error_.empty()) {
+        *error = last_reload_error_;
+      } else if (reload_in_progress_) {
+        *error = "ASR backend is still loading.";
+      } else {
+        *error = "ASR backend is not ready.";
+      }
+    }
+    return false;
+  }
+
+  if (descriptor && has_effective_descriptor_) {
+    *descriptor = effective_descriptor_;
+  }
+
+  *session = effective_backend_->CreateSession(error);
+  return static_cast<bool>(*session);
+}
+
+void RecognitionSessionManager::EnsureReloadWorkerStarted() {
+  std::lock_guard<std::mutex> lock(state_mutex_);
+  if (reload_worker_running_) {
+    return;
+  }
+  reload_worker_running_ = true;
+  reload_worker_ = std::thread([this]() { ReloadWorkerMain(); });
+}
+
+void RecognitionSessionManager::ReloadWorkerMain() {
+  while (true) {
+    CoreConfig settings;
+    std::string signature;
+    {
+      std::unique_lock<std::mutex> lock(state_mutex_);
+      reload_cv_.wait(lock, [&]() {
+        return reload_requested_ || !reload_worker_running_;
+      });
+      if (!reload_worker_running_) {
+        break;
+      }
+
+      settings = pending_settings_;
+      signature = target_backend_signature_;
+      reload_requested_ = false;
+      reload_in_progress_ = true;
+    }
+
+    PreparedBackend prepared;
+    std::string error;
+    const bool ok =
+        CreatePreparedBackendForReload(settings, signature, &prepared, &error);
+
+    if (ok) {
+      {
+        std::lock_guard<std::mutex> lock(state_mutex_);
+        effective_backend_ = std::move(prepared.backend);
+        effective_descriptor_ = std::move(prepared.descriptor);
+        has_effective_descriptor_ = true;
+        effective_backend_signature_ = std::move(prepared.signature);
+        last_reload_error_.clear();
+        reload_in_progress_ = false;
+      }
+      vinput::debug::Log("ASR backend reload applied asynchronously\n");
+      NotifyReloadResult(true, {});
+      continue;
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(state_mutex_);
+      last_reload_error_ = error;
+      reload_in_progress_ = false;
+    }
+    fprintf(stderr, "vinput-daemon: async ASR backend reload failed: %s\n",
+            error.c_str());
+    NotifyReloadResult(false, error);
+  }
+}
+
+void RecognitionSessionManager::ResetEffectiveBackendLocked() {
+  effective_backend_.reset();
+  has_effective_descriptor_ = false;
+  effective_descriptor_ = {};
+  effective_backend_signature_.clear();
+}
+
+void RecognitionSessionManager::ApplyDisabledStateLocked() {
+  pending_settings_ = {};
+  target_backend_signature_.clear();
+  last_reload_error_.clear();
+  reload_requested_ = false;
+  reload_in_progress_ = false;
+  ResetEffectiveBackendLocked();
+}
+
+void RecognitionSessionManager::NotifyReloadResult(
+    bool success, const std::string &message) {
+  std::function<void(bool, const std::string &)> callback;
+  {
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    callback = reload_result_callback_;
+  }
+  if (callback) {
+    callback(success, message);
+  }
 }
 
 }  // namespace vinput::daemon::asr

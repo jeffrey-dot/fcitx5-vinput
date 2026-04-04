@@ -73,7 +73,21 @@ DaemonRuntimeController::DaemonRuntimeController(
     : capture_(capture),
       dbus_(dbus),
       recognition_manager_(recognition_manager),
-      pipeline_(pipeline) {}
+      pipeline_(pipeline) {
+  if (recognition_manager_) {
+    recognition_manager_->SetReloadResultCallback(
+        [this](bool success, const std::string &message) {
+          if (success) {
+            return;
+          }
+          if (!dbus_ || message.empty()) {
+            return;
+          }
+          dbus_->EmitNotification(vinput::dbus::MakeRawError(
+              "Failed to apply ASR backend reload. " + message));
+        });
+  }
+}
 
 DaemonRuntimeController::~DaemonRuntimeController() { Shutdown(); }
 
