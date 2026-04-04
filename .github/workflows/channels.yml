@@ -126,7 +126,7 @@ jobs:
       DEBFULLNAME: "xifan233"
       DEBEMAIL: "xifan2333@gmail.com"
       GPG_KEY_ID: "E6D4B5BAE745E1506C9961EC892ED0BBCEA13586"
-      PPA_REVISION: "2"
+      PPA_REVISION: "3"
     steps:
       - uses: actions/checkout@v6
         with:

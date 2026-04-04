@@ -15,3 +15,8 @@ override_dh_auto_configure:
 		-DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold \
 		-DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold \
 		-DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=mold
+
+override_dh_auto_test:
+	# The project currently does not define any CTest/Ninja test target.
+	# Let Launchpad finish the package build instead of invoking a missing target.
+	:
