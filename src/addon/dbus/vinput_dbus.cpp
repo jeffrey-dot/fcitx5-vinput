@@ -32,6 +32,7 @@ constexpr const char *kReplaceMode = "replace";
 constexpr uint64_t kDaemonCallTimeoutUsec = 5 * 1000 * 1000;
 constexpr uint64_t kStatusSyncIntervalUsec = 200 * 1000;
 constexpr auto kDaemonFailureCooldown = std::chrono::milliseconds(1500);
+std::string StartingPreeditText() { return _("... Starting ..."); }
 std::string RecordingPreeditText() { return _("... Recording ..."); }
 
 std::string CommandingPreeditText() { return _("... Commanding ..."); }
@@ -292,13 +293,29 @@ bool VinputEngine::callStartRecording() {
   }
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodStartRecording);
-  auto reply = msg.call(kDaemonCallTimeoutUsec);
-  if (!reply || reply.isError()) {
+  pending_start_call_slot_ = msg.callAsync(
+      kDaemonCallTimeoutUsec, [this](fcitx::dbus::Message &reply) {
+        pending_start_call_slot_.reset();
+        if (!reply || reply.isError()) {
+          noteDaemonSyncFailure();
+          fprintf(stderr, "vinput: StartRecording rejected by daemon\n");
+          auto *ic = resolveFrontendInputContext();
+          finishFrontendSession(ic);
+          if (ic) {
+            updatePreedit(
+                ic, reply && !reply.errorMessage().empty()
+                        ? reply.errorMessage()
+                        : _("Voice input daemon is temporarily unavailable."));
+          }
+          return true;
+        }
+        clearDaemonSyncFailure();
+        return true;
+      });
+  if (!pending_start_call_slot_) {
     noteDaemonSyncFailure();
-    fprintf(stderr, "vinput: StartRecording rejected by daemon\n");
     return false;
   }
-  clearDaemonSyncFailure();
   return true;
 }
 
@@ -310,13 +327,29 @@ bool VinputEngine::callStartCommandRecording(const std::string &selected_text) {
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodStartCommandRecording);
   msg << selected_text;
-  auto reply = msg.call(kDaemonCallTimeoutUsec);
-  if (!reply || reply.isError()) {
+  pending_start_call_slot_ = msg.callAsync(
+      kDaemonCallTimeoutUsec, [this](fcitx::dbus::Message &reply) {
+        pending_start_call_slot_.reset();
+        if (!reply || reply.isError()) {
+          noteDaemonSyncFailure();
+          fprintf(stderr, "vinput: StartCommandRecording rejected by daemon\n");
+          auto *ic = resolveFrontendInputContext();
+          finishFrontendSession(ic);
+          if (ic) {
+            updatePreedit(
+                ic, reply && !reply.errorMessage().empty()
+                        ? reply.errorMessage()
+                        : _("Voice input daemon is temporarily unavailable."));
+          }
+          return true;
+        }
+        clearDaemonSyncFailure();
+        return true;
+      });
+  if (!pending_start_call_slot_) {
     noteDaemonSyncFailure();
-    fprintf(stderr, "vinput: StartCommandRecording rejected by daemon\n");
     return false;
   }
-  clearDaemonSyncFailure();
   return true;
 }
 
@@ -328,13 +361,29 @@ bool VinputEngine::callStopRecording(const std::string &scene_id) {
   auto msg = bus_->createMethodCall(kBusName, kObjectPath, kInterface,
                                     kMethodStopRecording);
   msg << scene_id;
-  auto reply = msg.call(kDaemonCallTimeoutUsec);
-  if (!reply || reply.isError()) {
+  pending_stop_call_slot_ = msg.callAsync(
+      kDaemonCallTimeoutUsec, [this](fcitx::dbus::Message &reply) {
+        pending_stop_call_slot_.reset();
+        if (!reply || reply.isError()) {
+          noteDaemonSyncFailure();
+          fprintf(stderr, "vinput: StopRecording rejected by daemon\n");
+          auto *ic = resolveFrontendInputContext();
+          finishFrontendSession(ic);
+          if (ic) {
+            updatePreedit(
+                ic, reply && !reply.errorMessage().empty()
+                        ? reply.errorMessage()
+                        : _("Voice input daemon is temporarily unavailable."));
+          }
+          return true;
+        }
+        clearDaemonSyncFailure();
+        return true;
+      });
+  if (!pending_stop_call_slot_) {
     noteDaemonSyncFailure();
-    fprintf(stderr, "vinput: StopRecording rejected by daemon\n");
     return false;
   }
-  clearDaemonSyncFailure();
   return true;
 }
 
@@ -368,6 +417,32 @@ void VinputEngine::stopStatusSyncIfIdle() {
   if (status_sync_event_ && !(session_.has_value() || status_ic_ != nullptr)) {
     status_sync_event_->setEnabled(false);
   }
+}
+
+void VinputEngine::enterPendingStartState(fcitx::InputContext *ic,
+                                          const fcitx::Key &trigger,
+                                          bool command_mode) {
+  if (!ic) {
+    return;
+  }
+  rememberInputContext(ic);
+  if (status_ic_ && status_ic_ != ic) {
+    clearPreedit(status_ic_);
+  }
+  if (!session_) {
+    session_.emplace(Session{Session::Phase::PendingStart, ic, trigger,
+                             std::chrono::steady_clock::now(), command_mode,
+                             {}});
+  } else {
+    session_->phase = Session::Phase::PendingStart;
+    session_->ic = ic;
+    session_->trigger = trigger;
+    session_->command_mode = command_mode;
+  }
+  status_ic_ = ic;
+  updatePreedit(ic, ComposeLivePreedit(command_mode, false, {},
+                                       StartingPreeditText()));
+  ensureStatusSync();
 }
 
 void VinputEngine::enterRecordingState(fcitx::InputContext *ic,
@@ -557,6 +632,10 @@ void VinputEngine::syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic
   const std::string status = queryDaemonStatus();
   auto *ic = resolveFrontendInputContext(fallback_ic);
   if (!ic) {
+    return;
+  }
+
+  if (status.empty()) {
     return;
   }
 

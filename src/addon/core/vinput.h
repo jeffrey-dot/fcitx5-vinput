@@ -87,6 +87,9 @@ private:
   void clearDaemonSyncFailure();
   void ensureStatusSync();
   void stopStatusSyncIfIdle();
+  void enterPendingStartState(fcitx::InputContext *ic,
+                              const fcitx::Key &trigger,
+                              bool command_mode);
   void enterRecordingState(fcitx::InputContext *ic, const fcitx::Key &trigger,
                            bool command_mode);
   void enterBusyState(fcitx::InputContext *ic, bool command_mode,
@@ -109,8 +112,10 @@ private:
   std::unique_ptr<fcitx::dbus::Slot> partial_slot_;
   std::unique_ptr<fcitx::dbus::Slot> status_slot_;
   std::unique_ptr<fcitx::dbus::Slot> error_slot_;
+  std::unique_ptr<fcitx::dbus::Slot> pending_start_call_slot_;
+  std::unique_ptr<fcitx::dbus::Slot> pending_stop_call_slot_;
   struct Session {
-    enum class Phase { Recording, Busy };
+    enum class Phase { PendingStart, Recording, Busy };
     Phase phase;
     fcitx::InputContext *ic;
     fcitx::Key trigger;

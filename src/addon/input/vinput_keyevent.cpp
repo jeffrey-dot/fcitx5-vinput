@@ -170,7 +170,7 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
         keyEvent.filterAndAccept();
         return;
       }
-      enterRecordingState(ic, trigger, true);
+      enterPendingStartState(ic, trigger, true);
       FCITX_LOG(Info) << "vinput: command key pressed, selected_text length=" << selected_text.size();
       if (!callStartCommandRecording(selected_text)) {
         finishFrontendSession(ic);
@@ -179,7 +179,7 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
         }
       }
     } else {
-      enterRecordingState(ic, trigger, false);
+      enterPendingStartState(ic, trigger, false);
       FCITX_LOG(Info) << "vinput: trigger key pressed";
       if (!callStartRecording()) {
         finishFrontendSession(ic);
