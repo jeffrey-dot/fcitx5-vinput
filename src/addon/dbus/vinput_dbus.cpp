@@ -528,6 +528,7 @@ std::string VinputEngine::queryDaemonStatus() const {
 
   std::string status;
   reply >> status;
+  const_cast<VinputEngine *>(this)->last_known_daemon_status_ = status;
   return status;
 }
 
@@ -630,18 +631,25 @@ void VinputEngine::clearDaemonSyncFailure() {
 void VinputEngine::syncFrontendWithDaemonStatus(fcitx::InputContext *fallback_ic,
                                                 bool prefer_command_mode) {
   const std::string status = queryDaemonStatus();
+  if (status.empty()) {
+    return;
+  }
+
+  applyDaemonStatusLocally(status, fallback_ic, prefer_command_mode);
+}
+
+void VinputEngine::applyDaemonStatusLocally(const std::string &status,
+                                            fcitx::InputContext *fallback_ic,
+                                            bool prefer_command_mode) {
   auto *ic = resolveFrontendInputContext(fallback_ic);
   if (!ic) {
     return;
   }
 
-  if (status.empty()) {
-    return;
-  }
-
   if (status == kStatusRecording) {
     enterRecordingState(ic, session_ ? session_->trigger : fcitx::Key(),
-                        session_ ? session_->command_mode : prefer_command_mode);
+                        session_ ? session_->command_mode
+                                 : prefer_command_mode);
     return;
   }
 
@@ -763,25 +771,13 @@ void VinputEngine::onRecognitionPartial(fcitx::dbus::Message &msg) {
 void VinputEngine::onStatusChanged(fcitx::dbus::Message &msg) {
   std::string status;
   msg >> status;
+  last_known_daemon_status_ = status;
 
   auto *ic = resolveFrontendInputContext();
-  if (!ic)
-    return;
-
-  rememberInputContext(ic);
-
-  if (status == kStatusRecording) {
-    enterRecordingState(ic, session_ ? session_->trigger : fcitx::Key(),
-                        session_ ? session_->command_mode : false);
-  } else if (status == kStatusInferring) {
-    enterBusyState(ic, session_ ? session_->command_mode : false,
-                   InferringPreeditText());
-  } else if (status == kStatusPostprocessing) {
-    enterBusyState(ic, session_ ? session_->command_mode : false,
-                   PostprocessingPreeditText());
-  } else {
-    finishFrontendSession(ic);
+  if (ic) {
+    rememberInputContext(ic);
   }
+  applyDaemonStatusLocally(status);
 }
 
 void VinputEngine::onDaemonNotification(fcitx::dbus::Message &msg) {

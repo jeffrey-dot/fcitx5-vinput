@@ -85,6 +85,9 @@ private:
   bool daemonSyncAllowed() const;
   void noteDaemonSyncFailure();
   void clearDaemonSyncFailure();
+  void applyDaemonStatusLocally(const std::string &status,
+                                fcitx::InputContext *fallback_ic = nullptr,
+                                bool prefer_command_mode = false);
   void ensureStatusSync();
   void stopStatusSyncIfIdle();
   void enterPendingStartState(fcitx::InputContext *ic,
@@ -157,6 +160,7 @@ private:
   bool result_is_command_ = false;
   std::chrono::steady_clock::time_point last_trigger_time_;
   std::chrono::steady_clock::time_point daemon_sync_blocked_until_{};
+  std::string last_known_daemon_status_;
   std::unique_ptr<fcitx::EventSourceTime> pending_stop_event_;
   std::unique_ptr<fcitx::EventSourceTime> status_sync_event_;
   VinputSettings settings_;

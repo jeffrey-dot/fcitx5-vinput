@@ -95,16 +95,14 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       return;
     }
     if (session_) {
-      syncFrontendWithDaemonStatus(session_->ic, session_->command_mode);
-      if (session_) {
-        keyEvent.filterAndAccept();
-        return;
-      }
+      ensureStatusSync();
+      keyEvent.filterAndAccept();
+      return;
     }
     auto *ic = keyEvent.inputContext();
     auto trigger = is_trigger ? trigger_keys_[trigger_index]
                               : command_keys_[command_index];
-    const std::string daemon_status = queryDaemonStatus();
+    const std::string daemon_status = last_known_daemon_status_;
     if (is_trigger && !session_ &&
         daemon_status == vinput::dbus::kStatusRecording) {
       hideResultMenu();
@@ -114,7 +112,7 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       return;
     }
     if (!daemon_status.empty() && daemon_status != vinput::dbus::kStatusIdle) {
-      syncFrontendWithDaemonStatus(ic, is_command);
+      applyDaemonStatusLocally(daemon_status, ic, is_command);
       keyEvent.filterAndAccept();
       return;
     }
