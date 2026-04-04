@@ -32,7 +32,32 @@ bool ShouldDisableAsr(const CoreConfig &config, bool disable_asr_by_flag,
 }
 
 std::string BuildRuntimeSignature(const CoreConfig &config) {
-  return nlohmann::ordered_json(config).dump();
+  nlohmann::ordered_json j;
+  j["default_language"] = config.global.defaultLanguage;
+  j["active_provider"] = config.asr.activeProvider;
+
+  const AsrProvider *provider = ResolveActiveAsrProvider(config);
+  if (!provider) {
+    return j.dump();
+  }
+
+  nlohmann::ordered_json provider_json;
+  provider_json["id"] = AsrProviderId(*provider);
+  provider_json["type"] = std::string(AsrProviderType(*provider));
+  provider_json["timeout_ms"] = AsrProviderTimeoutMs(*provider);
+
+  if (const auto *local = std::get_if<LocalAsrProvider>(provider)) {
+    provider_json["model"] = local->model;
+    provider_json["hotwords_file"] = local->hotwordsFile;
+    provider_json["vad_enabled"] = config.asr.vad.enabled;
+  } else if (const auto *command = std::get_if<CommandAsrProvider>(provider)) {
+    provider_json["command"] = command->command;
+    provider_json["args"] = command->args;
+    provider_json["env"] = command->env;
+  }
+
+  j["provider"] = std::move(provider_json);
+  return j.dump();
 }
 
 void LogActiveBackend(const CoreConfig &config) {
