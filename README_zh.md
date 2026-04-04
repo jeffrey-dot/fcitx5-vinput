@@ -114,6 +114,8 @@ sudo apt-get install -f
 { pkgs, ... }@inputs:
 let
   fcitx5-vinput = inputs.fcitx5-vinput.packages."${pkgs.stdenv.hostPlatform.system}".default;
+  # 如果需要 Vosk 功能，请改用 Vosk 版本：
+  # fcitx5-vinput = inputs.fcitx5-vinput.packages."${pkgs.stdenv.hostPlatform.system}".fcitx5-vinput-vosk;
 in
 {
   home.packages = [

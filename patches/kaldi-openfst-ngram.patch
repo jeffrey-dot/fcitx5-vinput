@@ -1,0 +1,33 @@
+--- /nix/store/14mp08xwd123cc2mqfpz36wj3qm529hb-source/CMakeLists.txt	1970-01-01 08:00:01.000000000 +0800
++++ src/CMakeLists.txt	2026-04-04 10:01:20.161537340 +0700
+@@ -221,6 +221,8 @@
+ #            NAMES fst
+ #            PATHS ${CMAKE_CURRENT_SOURCE_DIR}/tools/openfst/lib
+ #            REQUIRED)
++set(OPENFST_ROOT_DIR @OPENFST_ROOT@)
++include(third_party/openfst_lib_target)
+ #find_path(OpenFST_INCLUDE_DIR
+ #            NAMES "fst/fst.h"
+ #            PATHS "${CMAKE_CURRENT_SOURCE_DIR}/tools/openfst/include"
+--- /nix/store/14mp08xwd123cc2mqfpz36wj3qm529hb-source/cmake/third_party/openfst_lib_target.cmake	1970-01-01 08:00:01.000000000 +0800
++++ src/cmake/third_party/openfst_lib_target.cmake	2026-04-04 10:01:20.164537429 +0700
+@@ -29,3 +29,19 @@
+ unset(fst_source_dir)
+ unset(fst_include_dir)
+ unset(fst_sources)
++
++# Build ngram extension library (needed by Vosk).
++set(fst_ngram_source_dir ${OPENFST_ROOT_DIR}/src/extensions/ngram)
++file(GLOB fst_ngram_sources "${fst_ngram_source_dir}/*.cc")
++add_library(fstngram ${fst_ngram_sources})
++add_dependencies(fstngram fst)
++target_include_directories(fstngram PUBLIC
++     $<BUILD_INTERFACE:${OPENFST_ROOT_DIR}/src/include>
++     $<INSTALL_INTERFACE:include/openfst>
++)
++install(TARGETS fstngram
++    EXPORT kaldi-targets
++    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
++)
