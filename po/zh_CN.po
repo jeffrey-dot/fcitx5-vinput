@@ -212,6 +212,18 @@ msgstr "语音输入守护进程无响应。"
 msgid "Voice input daemon is temporarily unavailable."
 msgstr "语音输入守护进程暂时不可用。"
 
+msgid "... Starting ..."
+msgstr "... 正在启动 ..."
+
+msgid "Daemon access is temporarily throttled."
+msgstr "守护进程访问暂时被限流。"
+
+msgid "Failed to contact vinput-daemon."
+msgstr "无法连接到 vinput-daemon。"
+
+msgid "Failed to query ASR backend state."
+msgstr "查询 ASR 后端状态失败。"
+
 msgid "Please select text first."
 msgstr "请先选中文本。"
 
@@ -237,6 +249,14 @@ msgstr "已切换场景到 '%s'。"
 #, c-format
 msgid "Switched ASR to '%s'."
 msgstr "已切换 ASR 到 '%s'。"
+
+#, c-format
+msgid "Switching ASR to '%s'."
+msgstr "正在切换 ASR 到 '%s'。"
+
+#, c-format
+msgid "ASR switch requested for '%s'."
+msgstr "已请求切换 ASR 到 '%s'。"
 
 #, c-format
 msgid "Config saved, but ASR backend reload was skipped: %s"

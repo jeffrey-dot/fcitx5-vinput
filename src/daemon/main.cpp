@@ -60,6 +60,52 @@ std::string ReadAvailableText(int fd) {
   return text;
 }
 
+constexpr auto kAdapterGracefulStopTimeout = std::chrono::seconds(2);
+constexpr auto kAdapterForceKillTimeout = std::chrono::seconds(3);
+constexpr auto kAdapterPollInterval = std::chrono::milliseconds(100);
+
+bool WaitForProcessExit(pid_t pid, std::chrono::milliseconds timeout,
+                        int *status_out = nullptr) {
+  if (pid <= 0) {
+    return true;
+  }
+
+  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    int status = 0;
+    const pid_t rc = waitpid(pid, &status, WNOHANG);
+    if (rc == pid) {
+      if (status_out) {
+        *status_out = status;
+      }
+      return true;
+    }
+    if (rc < 0 && errno == ECHILD) {
+      return true;
+    }
+    if (rc < 0 && errno != EINTR) {
+      return false;
+    }
+    std::this_thread::sleep_for(kAdapterPollInterval);
+  }
+
+  return false;
+}
+
+void TerminateProcessBounded(pid_t pid) {
+  if (pid <= 0) {
+    return;
+  }
+
+  kill(pid, SIGTERM);
+  if (WaitForProcessExit(pid, kAdapterGracefulStopTimeout)) {
+    return;
+  }
+
+  kill(pid, SIGKILL);
+  (void)WaitForProcessExit(pid, kAdapterForceKillTimeout);
+}
+
 class AdapterSupervisor {
 public:
   explicit AdapterSupervisor(DbusService *dbus) : dbus_(dbus) {}
@@ -271,8 +317,7 @@ private:
     }
 
     if (!vinput::adapter::WritePidFile(adapter_id, process.pid, &error)) {
-      kill(process.pid, SIGTERM);
-      (void)waitpid(process.pid, nullptr, 0);
+      TerminateProcessBounded(process.pid);
       close(process.stderr_fd);
       process.stderr_fd = -1;
       return DbusService::MethodResult::Failure(
@@ -308,14 +353,17 @@ private:
       adapters_.erase(it);
     }
 
+    if (tracked_pid > 0) {
+      TerminateProcessBounded(tracked_pid);
+      vinput::adapter::RemovePidFile(adapter_id);
+      vinput::debug::Log("adapter stopped id=%s\n", adapter_id.c_str());
+      return DbusService::MethodResult::Success();
+    }
+
     std::string error;
     if (!vinput::adapter::Stop(adapter_id, &error)) {
       return DbusService::MethodResult::Failure(
           error.empty() ? "failed to stop adapter" : error);
-    }
-
-    if (tracked_pid > 0) {
-      (void)waitpid(tracked_pid, nullptr, 0);
     }
 
     vinput::debug::Log("adapter stopped id=%s\n", adapter_id.c_str());
@@ -440,8 +488,7 @@ private:
         adapter.stderr_fd = -1;
       }
       if (adapter.pid > 0) {
-        kill(adapter.pid, SIGTERM);
-        (void)waitpid(adapter.pid, nullptr, 0);
+        TerminateProcessBounded(adapter.pid);
       }
       vinput::adapter::RemovePidFile(id);
     }
@@ -604,6 +651,7 @@ int main(int argc, char *argv[]) {
   }
 
   fprintf(stderr, "vinput-daemon: shutting down\n");
+  post_processor.Shutdown();
   runtime_controller.Shutdown();
   recognition_manager.Shutdown();
   adapter_supervisor.Shutdown();

@@ -6,6 +6,8 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
+#include <atomic>
 #include <cstdlib>
 #include <cstdio>
 #include <optional>
@@ -18,6 +20,7 @@ namespace {
 using json = nlohmann::json;
 constexpr std::size_t kMaxLoggedResponseBytes = 2048;
 constexpr std::size_t kMaxResponseBytes = 1 * 1024 * 1024; // 1 MB limit
+constexpr long kDefaultConnectTimeoutMs = 5000;
 
 struct CurlGuard {
   CURL *curl = nullptr;
@@ -27,6 +30,10 @@ struct CurlGuard {
     if (headers) curl_slist_free_all(headers);
     if (curl) curl_easy_cleanup(curl);
   }
+};
+
+struct CurlRequestContext {
+  const std::atomic<bool> *cancel_flag = nullptr;
 };
 
 size_t WriteResponseCallback(char *ptr, size_t size, size_t nmemb,
@@ -41,6 +48,15 @@ size_t WriteResponseCallback(char *ptr, size_t size, size_t nmemb,
     return 0;
   response->append(ptr, total);
   return total;
+}
+
+int ProgressCallback(void *clientp, curl_off_t, curl_off_t, curl_off_t,
+                     curl_off_t) {
+  const auto *ctx = static_cast<const CurlRequestContext *>(clientp);
+  if (!ctx || !ctx->cancel_flag) {
+    return 0;
+  }
+  return ctx->cancel_flag->load(std::memory_order_relaxed) ? 1 : 0;
 }
 
 std::string TrimAsciiWhitespace(std::string text) {
@@ -214,7 +230,8 @@ RewriteWithOpenAiCompatible(const std::string &text,
                             const LlmProvider &provider, int candidate_count,
                             std::string *error_out,
                             const std::string &task_prompt = {},
-                            bool use_markdown_user_input = true) {
+                            bool use_markdown_user_input = true,
+                            const std::atomic<bool> *cancel_flag = nullptr) {
   if (scene.prompt.empty() && task_prompt.empty()) {
     return std::nullopt;
   }
@@ -271,6 +288,10 @@ RewriteWithOpenAiCompatible(const std::string &text,
   curl_easy_setopt(guard.curl, CURLOPT_POSTFIELDSIZE,
                    static_cast<long>(request_body.size()));
   curl_easy_setopt(guard.curl, CURLOPT_WRITEFUNCTION, WriteResponseCallback);
+  curl_easy_setopt(
+      guard.curl, CURLOPT_CONNECTTIMEOUT_MS,
+      static_cast<long>(
+          std::min(scene.timeout_ms, static_cast<int>(kDefaultConnectTimeoutMs))));
   curl_easy_setopt(guard.curl, CURLOPT_TIMEOUT_MS, scene.timeout_ms);
   curl_easy_setopt(guard.curl, CURLOPT_NOSIGNAL, 1L);
   curl_easy_setopt(guard.curl, CURLOPT_USERAGENT, vinput::llm::kHttpUserAgent);
@@ -278,6 +299,10 @@ RewriteWithOpenAiCompatible(const std::string &text,
   std::string response_body;
   curl_easy_setopt(guard.curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(guard.curl, CURLOPT_WRITEDATA, &response_body);
+  CurlRequestContext request_context{.cancel_flag = cancel_flag};
+  curl_easy_setopt(guard.curl, CURLOPT_NOPROGRESS, 0L);
+  curl_easy_setopt(guard.curl, CURLOPT_XFERINFOFUNCTION, ProgressCallback);
+  curl_easy_setopt(guard.curl, CURLOPT_XFERINFODATA, &request_context);
 
   CURLcode curl_code = curl_easy_perform(guard.curl);
   long status_code = 0;
@@ -285,6 +310,21 @@ RewriteWithOpenAiCompatible(const std::string &text,
   curl_easy_getinfo(guard.curl, CURLINFO_RESPONSE_CODE, &status_code);
   curl_easy_getinfo(guard.curl, CURLINFO_TOTAL_TIME, &total_time_sec);
   const double total_time_ms = total_time_sec * 1000.0;
+
+  const bool cancelled =
+      curl_code == CURLE_ABORTED_BY_CALLBACK && cancel_flag &&
+      cancel_flag->load(std::memory_order_relaxed);
+
+  if (cancelled) {
+    vinput::debug::Log(
+        "LLM request provider=%s url=%s cancelled during shutdown after %.1fms\n",
+        provider.id.empty() ? "(unnamed)" : provider.id.c_str(),
+        url.c_str(), total_time_ms);
+    if (error_out) {
+      error_out->clear();
+    }
+    return std::nullopt;
+  }
 
   if (curl_code != CURLE_OK) {
     const std::string msg =
@@ -368,6 +408,10 @@ PostProcessor::PostProcessor() {
 
 PostProcessor::~PostProcessor() { curl_global_cleanup(); }
 
+void PostProcessor::Shutdown() {
+  shutting_down_.store(true, std::memory_order_relaxed);
+}
+
 vinput::result::Payload
 PostProcessor::Process(const std::string &raw_text,
                        const vinput::scene::Definition &scene,
@@ -393,7 +437,7 @@ PostProcessor::Process(const std::string &raw_text,
 
   auto rewritten =
       RewriteWithOpenAiCompatible(normalized, scene, *provider, candidate_count,
-                                   error_out);
+                                  error_out, {}, true, &shutting_down_);
   if (!rewritten.has_value()) {
     return fallback;
   }
@@ -451,8 +495,8 @@ PostProcessor::ProcessCommand(const std::string &asr_text,
 
   auto rewritten =
       RewriteWithOpenAiCompatible(selected_text, command_scene, *provider,
-                                   command_candidate_count, error_out,
-                                   task_prompt, false);
+                                  command_candidate_count, error_out,
+                                  task_prompt, false, &shutting_down_);
 
   vinput::result::Payload payload;
   // 1st: original selected text (always)

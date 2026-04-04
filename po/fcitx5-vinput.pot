@@ -210,6 +210,18 @@ msgstr ""
 msgid "Voice input daemon is temporarily unavailable."
 msgstr ""
 
+msgid "... Starting ..."
+msgstr ""
+
+msgid "Daemon access is temporarily throttled."
+msgstr ""
+
+msgid "Failed to contact vinput-daemon."
+msgstr ""
+
+msgid "Failed to query ASR backend state."
+msgstr ""
+
 msgid "Please select text first."
 msgstr ""
 
@@ -234,6 +246,14 @@ msgstr ""
 
 #, c-format
 msgid "Switched ASR to '%s'."
+msgstr ""
+
+#, c-format
+msgid "Switching ASR to '%s'."
+msgstr ""
+
+#, c-format
+msgid "ASR switch requested for '%s'."
 msgstr ""
 
 #, c-format
