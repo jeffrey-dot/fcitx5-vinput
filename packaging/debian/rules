@@ -23,3 +23,8 @@ override_dh_auto_test:
 	# The project currently does not define any CTest/Ninja test target.
 	# Let Launchpad finish the package build instead of invoking a missing target.
 	:
+
+override_dh_dwz:
+	# Noble's dwz cannot process the DWARF sections emitted by our clang/LTO
+	# release binaries, which breaks the package after a successful build.
+	:
