@@ -79,7 +79,7 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
   const int command_index = keyEvent.key().keyListIndex(command_keys_);
   const bool is_command = command_index >= 0;
 
-  FCITX_LOG(Info) << "vinput handleKeyEvent: " << keyEvent.key()
+  FCITX_LOG(Debug) << "vinput handleKeyEvent: " << keyEvent.key()
                    << " is_release=" << keyEvent.isRelease()
                    << " is_trigger=" << is_trigger
                    << " is_command=" << is_command;
@@ -175,7 +175,8 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
         return;
       }
       enterPendingStartState(ic, trigger, true);
-      FCITX_LOG(Info) << "vinput: command key pressed, selected_text length=" << selected_text.size();
+      FCITX_LOG(Debug) << "vinput: command key pressed, selected_text length="
+                       << selected_text.size();
       if (!callStartCommandRecording(selected_text)) {
         finishFrontendSession(ic);
         if (!bus_) {
@@ -190,7 +191,7 @@ void VinputEngine::handleKeyEvent(fcitx::Event &event) {
       }
     } else {
       enterPendingStartState(ic, trigger, false);
-      FCITX_LOG(Info) << "vinput: trigger key pressed";
+      FCITX_LOG(Debug) << "vinput: trigger key pressed";
       if (!callStartRecording()) {
         finishFrontendSession(ic);
         if (!bus_) {
