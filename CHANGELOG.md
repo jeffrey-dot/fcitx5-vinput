@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.25](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.25) — 2026-04-07
+
+### Bug Fixes
+
+- **addon:** Match trigger-key release events against modifier state so combos like `Alt+R` do not stop recording on unrelated keys such as `Ctrl+R`
+
 ## [2.0.24](https://github.com/xifan2333/fcitx5-vinput/releases/tag/v2.0.24) — 2026-04-06
 
 ### Bug Fixes
